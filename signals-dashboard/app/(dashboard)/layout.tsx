@@ -6,6 +6,8 @@ const navItems = [
   { label: "Clusters", href: "/clusters" },
   { label: "Opportunities", href: "/opportunities" },
   { label: "Models", href: "/models" },
+  { label: "Ingestion", href: "/ingestion" },
+  { label: "Review", href: "/review" },
 ];
 
 export default async function DashboardLayout({

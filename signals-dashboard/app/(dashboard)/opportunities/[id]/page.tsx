@@ -6,7 +6,11 @@ import { ScoreCard } from "@/components/pmf/ScoreCard";
 import { JsonBlock } from "@/components/pmf/JsonBlock";
 import { addCompetitor } from "../actions";
 import { runAnalysis } from "../../runs/actions";
+import { getLatestSnapshotForOpportunity } from "@/lib/artifacts/snapshots";
+import { HandoffPanel } from "./HandoffPanel";
+import { ChecklistPanel } from "./ChecklistPanel";
 import type { Verdict } from "@/lib/pmf/types";
+import type { ArtifactsV1 } from "@/lib/artifacts/types";
 
 interface OpportunityDetailProps {
   params: Promise<{ id: string }>;
@@ -35,6 +39,20 @@ export default async function OpportunityDetailPage({
   const hasScore =
     detail.score_total != null && detail.verdict != null;
 
+  // Parse artifacts from latest snapshot
+  let artifacts: ArtifactsV1 = {};
+  try {
+    const latestSnapshot = await getLatestSnapshotForOpportunity(id);
+    if (latestSnapshot?.explanations) {
+      const expl = latestSnapshot.explanations as Record<string, unknown>;
+      if (expl.artifacts_v1 && typeof expl.artifacts_v1 === "object") {
+        artifacts = expl.artifacts_v1 as ArtifactsV1;
+      }
+    }
+  } catch {
+    // Snapshot read failed — artifacts stay empty
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -56,6 +74,18 @@ export default async function OpportunityDetailPage({
           confidence={(detail.confidence as number) ?? 0}
         />
       )}
+
+      {/* Handoff Artifact */}
+      <HandoffPanel
+        opportunityId={id}
+        handoff={artifacts.handoff_v1 ?? null}
+      />
+
+      {/* Checklist Artifact */}
+      <ChecklistPanel
+        opportunityId={id}
+        checklist={artifacts.checklist_v1 ?? null}
+      />
 
       {/* Score Breakdown */}
       {detail.score_breakdown && (
