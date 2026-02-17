@@ -1,0 +1,25 @@
+{
+  "name": "signals",
+  "version": "0.1.0",
+  "description": "AI-powered market intelligence engine for discovering validated SaaS opportunities",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:migrate": "node scripts/migrate.js",
+    "db:test": "node scripts/smoke-test.js",
+    "db:seed": "node scripts/seed.js",
+    "agent:scout": "node agents/scout_reddit.js",
+    "agent:classify": "node agents/classifier.js",
+    "agent:score": "node agents/scorer.js",
+    "briefing": "node agents/scribe.js",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "openai": "^4.80.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
