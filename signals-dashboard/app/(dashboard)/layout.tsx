@@ -1,14 +1,5 @@
-import Link from "next/link";
 import { requireUser } from "@/lib/auth/requireUser";
-
-const navItems = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Clusters", href: "/clusters" },
-  { label: "Opportunities", href: "/opportunities" },
-  { label: "Models", href: "/models" },
-  { label: "Ingestion", href: "/ingestion" },
-  { label: "Review", href: "/review" },
-];
+import { Sidebar } from "@/components/layout/Sidebar";
 
 export default async function DashboardLayout({
   children,
@@ -18,35 +9,16 @@ export default async function DashboardLayout({
   const { user } = await requireUser();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-6">
-            <span className="text-lg font-bold text-gray-900">Signals</span>
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500">{user.email}</span>
-            <form action="/logout" method="POST">
-              <button
-                type="submit"
-                className="text-sm text-red-600 hover:text-red-800"
-              >
-                Logout
-              </button>
-            </form>
-          </div>
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--color-bg)" }}>
+      <Sidebar userEmail={user.email ?? ""} />
+      <main
+        className="flex-1 overflow-y-auto"
+        style={{ marginLeft: "var(--sidebar-width)" }}
+      >
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "var(--space-8) var(--space-6)" }}>
+          {children}
         </div>
-      </nav>
-      <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
+      </main>
     </div>
   );
 }
