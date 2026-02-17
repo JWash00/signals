@@ -9,6 +9,7 @@ import { runAnalysis } from "../../runs/actions";
 import { getLatestSnapshotForOpportunity } from "@/lib/artifacts/snapshots";
 import { HandoffPanel } from "./HandoffPanel";
 import { ChecklistPanel } from "./ChecklistPanel";
+import DecisionPanel from "./DecisionPanel";
 import type { Verdict } from "@/lib/pmf/types";
 import type { ArtifactsV1 } from "@/lib/artifacts/types";
 
@@ -65,6 +66,13 @@ export default async function OpportunityDetailPage({
           </span>
         )}
       </div>
+
+      {/* Decision */}
+      <DecisionPanel
+        opportunityId={id}
+        currentStatus={(detail.status as string) ?? null}
+        killReasonInitial={(detail.kill_reason as string) ?? null}
+      />
 
       {/* Latest Score */}
       {hasScore && (

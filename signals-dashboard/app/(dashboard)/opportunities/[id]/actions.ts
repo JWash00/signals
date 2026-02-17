@@ -1,12 +1,16 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/requireUser";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   getLatestSnapshotForOpportunity,
   createSnapshotWithArtifacts,
 } from "@/lib/artifacts/snapshots";
 import type { HandoffV1, ChecklistV1 } from "@/lib/artifacts/types";
-import { revalidatePath } from "next/cache";
+
+// ── Artifact actions (existing) ─────────────────────────────────
 
 export async function generateHandoffV1(
   opportunityId: string,
@@ -14,7 +18,6 @@ export async function generateHandoffV1(
   try {
     const { supabase } = await requireUser();
 
-    // Read opportunity info
     const { data: opp, error: oppErr } = await supabase
       .from("opportunities")
       .select("id, title, description, cluster_id, status, score_total, competitor_count")
@@ -25,7 +28,6 @@ export async function generateHandoffV1(
       return { ok: false, error: oppErr?.message ?? "Opportunity not found" };
     }
 
-    // Get signal count from cluster if available
     let signalCount: number | null = null;
     let platformCount: number | null = null;
     if (opp.cluster_id) {
@@ -40,7 +42,6 @@ export async function generateHandoffV1(
       }
     }
 
-    // Read latest snapshot for PMF scores
     const latest = await getLatestSnapshotForOpportunity(opportunityId);
     const breakdown = latest?.score_breakdown as Record<string, unknown> | null;
 
@@ -85,7 +86,6 @@ export async function saveChecklistV1(
   try {
     await requireUser();
 
-    // Compute total
     const d = checklist.durability_scores;
     const total =
       d.platform_encroachment +
@@ -95,13 +95,11 @@ export async function saveChecklistV1(
       d.expansion_vector +
       d.data_compounding;
 
-    // Hard kill rule: platform_encroachment=0 AND data_compounding=0
     const hardKill = d.platform_encroachment === 0 && d.data_compounding === 0;
 
     checklist.durability_scores.total = total;
     checklist.durability_scores.hard_kill = hardKill;
 
-    // Enforce hard kill verdict
     if (hardKill && checklist.verdict !== "KILL") {
       checklist.verdict = "KILL";
       checklist.reason = checklist.reason
@@ -109,7 +107,6 @@ export async function saveChecklistV1(
         : "Hard kill: no platform encroachment defense and no data compounding.";
     }
 
-    // If BUILD, execution_surface must be set
     if (checklist.verdict === "BUILD" && !checklist.execution_surface) {
       return {
         ok: false,
@@ -132,4 +129,48 @@ export async function saveChecklistV1(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
+}
+
+// ── Decision action (new) ───────────────────────────────────────
+
+type OpportunityStatus =
+  | "investigating"
+  | "validating"
+  | "confirmed"
+  | "building"
+  | "launched"
+  | "killed";
+
+export async function setOpportunityStatus(input: {
+  opportunityId: string;
+  status: OpportunityStatus;
+  killReason?: string;
+}): Promise<void> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) throw userError;
+  if (!user) redirect("/login");
+
+  const payload: Record<string, unknown> = {
+    status: input.status,
+  };
+
+  if (input.status === "killed") {
+    payload.kill_reason = input.killReason ?? null;
+    payload.killed_at = new Date().toISOString();
+  }
+
+  const { error } = await supabase
+    .from("opportunities")
+    .update(payload)
+    .eq("id", input.opportunityId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/opportunities/${input.opportunityId}`);
 }
