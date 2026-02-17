@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import type { ChecklistV1 } from "@/lib/artifacts/types";
 import { saveChecklistV1 } from "./actions";
@@ -59,6 +60,23 @@ function emptyChecklist(): ChecklistV1 {
   };
 }
 
+const selectStyle: React.CSSProperties = {
+  padding: "var(--space-2) var(--space-3)",
+  fontSize: "var(--text-sm)",
+  borderRadius: "var(--radius-md)",
+  border: "1px solid var(--color-border)",
+  background: "var(--color-bg-elevated)",
+  color: "var(--color-text-primary)",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontWeight: 500,
+  fontSize: "var(--text-sm)",
+  color: "var(--color-text-secondary)",
+  marginBottom: "var(--space-1)",
+};
+
 export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistPanelProps) {
   const [form, setForm] = useState<ChecklistV1>(initial ?? emptyChecklist());
   const [error, setError] = useState<string | null>(null);
@@ -74,10 +92,7 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
   function setDurability(key: string, val: number) {
     setForm((f) => ({
       ...f,
-      durability_scores: {
-        ...f.durability_scores,
-        [key]: val as 0 | 1 | 2,
-      },
+      durability_scores: { ...f.durability_scores, [key]: val as 0 | 1 | 2 },
     }));
   }
 
@@ -116,12 +131,21 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
 
   return (
     <Card title="Build Checklist (v1)">
-      <div className="space-y-6 text-sm">
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontSize: "var(--text-sm)" }}>
         {/* Atomic Value */}
         <div>
-          <label className="block font-medium text-gray-700 mb-1">Atomic Value</label>
+          <label style={labelStyle}>Atomic Value</label>
           <input
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            style={{
+              width: "100%",
+              padding: "var(--space-2) var(--space-3)",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--color-border)",
+              fontSize: "var(--text-sm)",
+              color: "var(--color-text-primary)",
+              background: "var(--color-bg-elevated)",
+              outline: "none",
+            }}
             value={form.atomic_value}
             onChange={(e) => setForm((f) => ({ ...f, atomic_value: e.target.value }))}
             placeholder="What is the single atomic unit of value?"
@@ -129,15 +153,25 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
         </div>
 
         {/* Value Surface */}
-        <fieldset>
-          <legend className="font-medium text-gray-700 mb-2">Value Surface</legend>
-          <div className="space-y-1">
+        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
+          <legend style={labelStyle}>Value Surface</legend>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {(["inside_workflow", "actionable", "detectable_moment"] as const).map((k) => (
-              <label key={k} className="flex items-center gap-2">
+              <label
+                key={k}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-2)",
+                  cursor: "pointer",
+                  color: "var(--color-text-primary)",
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={form.value_surface[k]}
                   onChange={(e) => setValueSurface(k, e.target.checked)}
+                  style={{ accentColor: "var(--color-accent)" }}
                 />
                 <span>{k.replace(/_/g, " ")}</span>
               </label>
@@ -146,15 +180,25 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
         </fieldset>
 
         {/* Disqualifiers */}
-        <fieldset>
-          <legend className="font-medium text-gray-700 mb-2">Disqualifiers</legend>
-          <div className="space-y-1">
+        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
+          <legend style={labelStyle}>Disqualifiers</legend>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {DISQUALIFIERS.map((d) => (
-              <label key={d.key} className="flex items-center gap-2">
+              <label
+                key={d.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-2)",
+                  cursor: "pointer",
+                  color: "var(--color-text-primary)",
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={form.disqualifiers[d.key]}
                   onChange={(e) => setDisqualifier(d.key, e.target.checked)}
+                  style={{ accentColor: "var(--color-error)" }}
                 />
                 <span>{d.label}</span>
               </label>
@@ -163,14 +207,16 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
         </fieldset>
 
         {/* Durability Scores */}
-        <fieldset>
-          <legend className="font-medium text-gray-700 mb-2">Durability Scores</legend>
-          <div className="space-y-2">
+        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
+          <legend style={labelStyle}>Durability Scores</legend>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {DURABILITY_AXES.map((axis) => (
-              <div key={axis.key} className="flex items-center gap-3">
-                <span className="w-48 text-gray-600">{axis.label}</span>
+              <div key={axis.key} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                <span style={{ width: 180, color: "var(--color-text-secondary)", fontSize: "var(--text-sm)" }}>
+                  {axis.label}
+                </span>
                 <select
-                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                  style={selectStyle}
                   value={ds[axis.key]}
                   onChange={(e) => setDurability(axis.key, parseInt(e.target.value))}
                 >
@@ -181,21 +227,23 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
               </div>
             ))}
           </div>
-          <div className="mt-3 flex items-center gap-4">
-            <span className="font-medium">Total: {computedTotal}/12</span>
+          <div style={{ marginTop: "var(--space-3)", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+            <span style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>
+              Total: {computedTotal}/12
+            </span>
             {hardKill && (
-              <span className="rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-800">
-                HARD KILL — platform_encroachment=0 + data_compounding=0
-              </span>
+              <Badge variant="error">
+                HARD KILL
+              </Badge>
             )}
           </div>
         </fieldset>
 
         {/* Execution Surface */}
         <div>
-          <label className="block font-medium text-gray-700 mb-1">Execution Surface</label>
+          <label style={labelStyle}>Execution Surface</label>
           <select
-            className="rounded border border-gray-300 px-3 py-2 text-sm"
+            style={selectStyle}
             value={form.execution_surface ?? ""}
             onChange={(e) =>
               setForm((f) => ({
@@ -204,7 +252,7 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
               }))
             }
           >
-            <option value="">— Select —</option>
+            <option value="">{"\u2014"} Select {"\u2014"}</option>
             <option value="EXTENSION">EXTENSION</option>
             <option value="AGENT">AGENT</option>
             <option value="HYBRID">HYBRID</option>
@@ -214,9 +262,9 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
 
         {/* Verdict */}
         <div>
-          <label className="block font-medium text-gray-700 mb-1">Verdict</label>
+          <label style={labelStyle}>Verdict</label>
           <select
-            className="rounded border border-gray-300 px-3 py-2 text-sm"
+            style={selectStyle}
             value={form.verdict ?? ""}
             onChange={(e) =>
               setForm((f) => ({
@@ -225,7 +273,7 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
               }))
             }
           >
-            <option value="">— Select —</option>
+            <option value="">{"\u2014"} Select {"\u2014"}</option>
             <option value="BUILD">BUILD</option>
             <option value="HOLD">HOLD</option>
             <option value="KILL">KILL</option>
@@ -234,9 +282,20 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
 
         {/* Reason */}
         <div>
-          <label className="block font-medium text-gray-700 mb-1">Reason</label>
+          <label style={labelStyle}>Reason</label>
           <textarea
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            style={{
+              width: "100%",
+              padding: "var(--space-2) var(--space-3)",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--color-border)",
+              fontSize: "var(--text-sm)",
+              fontFamily: "inherit",
+              color: "var(--color-text-primary)",
+              background: "var(--color-bg-elevated)",
+              outline: "none",
+              resize: "vertical",
+            }}
             rows={3}
             value={form.reason}
             onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
@@ -244,9 +303,13 @@ export function ChecklistPanel({ opportunityId, checklist: initial }: ChecklistP
           />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-error-text)" }}>
+            {error}
+          </p>
+        )}
 
-        <Button onClick={handleSave} disabled={isPending}>
+        <Button onClick={handleSave} disabled={isPending} loading={isPending}>
           {isPending ? "Saving..." : "Save Checklist (v1)"}
         </Button>
       </div>

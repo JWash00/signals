@@ -32,11 +32,15 @@ export function HandoffPanel({ opportunityId, handoff }: HandoffPanelProps) {
   if (!handoff) {
     return (
       <Card title="Handoff">
-        <p className="mb-4 text-sm text-gray-500">
+        <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-tertiary)", marginBottom: "var(--space-4)" }}>
           No handoff generated yet.
         </p>
-        {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
-        <Button onClick={handleGenerate} disabled={isPending}>
+        {error && (
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-error-text)", marginBottom: "var(--space-2)" }}>
+            {error}
+          </p>
+        )}
+        <Button onClick={handleGenerate} disabled={isPending} loading={isPending}>
           {isPending ? "Generating..." : "Generate Handoff (v1)"}
         </Button>
       </Card>
@@ -45,31 +49,35 @@ export function HandoffPanel({ opportunityId, handoff }: HandoffPanelProps) {
 
   return (
     <Card title="Handoff (v1)">
-      <div className="space-y-3 text-sm">
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", fontSize: "var(--text-sm)" }}>
         <Row label="Opportunity" value={handoff.opportunity_name} />
         <Row label="Source Type" value={handoff.source_type} />
-        <Row label="Summary" value={handoff.summary || "—"} />
+        <Row label="Summary" value={handoff.summary || "\u2014"} />
         <Row
           label="Evidence"
           value={`${handoff.evidence_count.raw_signals ?? 0} signals, ${handoff.evidence_count.sources ?? 0} sources`}
         />
         <div>
-          <span className="font-medium text-gray-700">PMF Snapshot</span>
-          <div className="mt-1 grid grid-cols-2 gap-2 text-xs">
-            <span>Demand: {handoff.pmf_snapshot.demand ?? "—"}</span>
-            <span>Pain: {handoff.pmf_snapshot.pain ?? "—"}</span>
-            <span>Competition: {handoff.pmf_snapshot.competition ?? "—"}</span>
-            <span>WTP: {handoff.pmf_snapshot.wtp ?? "—"}</span>
+          <span style={{ fontWeight: 500, color: "var(--color-text-secondary)" }}>PMF Snapshot</span>
+          <div style={{ marginTop: "var(--space-1)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2)", fontSize: "var(--text-xs)" }}>
+            <span>Demand: {handoff.pmf_snapshot.demand ?? "\u2014"}</span>
+            <span>Pain: {handoff.pmf_snapshot.pain ?? "\u2014"}</span>
+            <span>Competition: {handoff.pmf_snapshot.competition ?? "\u2014"}</span>
+            <span>WTP: {handoff.pmf_snapshot.wtp ?? "\u2014"}</span>
           </div>
         </div>
-        <Row label="Build Decision" value={handoff.build_decision ?? "—"} />
-        <Row label="Execution Surface" value={handoff.execution_surface ?? "—"} />
-        <Row label="Why" value={handoff.why ?? "—"} />
+        <Row label="Build Decision" value={handoff.build_decision ?? "\u2014"} />
+        <Row label="Execution Surface" value={handoff.execution_surface ?? "\u2014"} />
+        <Row label="Why" value={handoff.why ?? "\u2014"} />
         <Row label="Created" value={new Date(handoff.created_at_iso).toLocaleString()} />
       </div>
-      <div className="mt-4">
-        {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
-        <Button onClick={handleGenerate} disabled={isPending} variant="secondary">
+      <div style={{ marginTop: "var(--space-4)" }}>
+        {error && (
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-error-text)", marginBottom: "var(--space-2)" }}>
+            {error}
+          </p>
+        )}
+        <Button onClick={handleGenerate} disabled={isPending} loading={isPending} variant="secondary">
           {isPending ? "Regenerating..." : "Regenerate Handoff"}
         </Button>
       </div>
@@ -80,8 +88,8 @@ export function HandoffPanel({ opportunityId, handoff }: HandoffPanelProps) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="font-medium text-gray-700">{label}: </span>
-      <span className="text-gray-900">{value}</span>
+      <span style={{ fontWeight: 500, color: "var(--color-text-secondary)" }}>{label}: </span>
+      <span style={{ color: "var(--color-text-primary)" }}>{value}</span>
     </div>
   );
 }

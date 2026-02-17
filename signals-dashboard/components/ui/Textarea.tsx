@@ -5,20 +5,52 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string;
 }
 
-export function Textarea({ label, error, className = "", id, ...props }: TextareaProps) {
+export function Textarea({ label, error, id, style, className, ...props }: TextareaProps) {
   return (
-    <div className="flex flex-col gap-1">
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
       {label && (
-        <label htmlFor={id} className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor={id}
+          style={{
+            fontSize: "var(--text-sm)",
+            fontWeight: 500,
+            color: "var(--color-text-secondary)",
+          }}
+        >
           {label}
         </label>
       )}
       <textarea
         id={id}
-        className={`rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${error ? "border-red-500" : ""} ${className}`}
+        className={className}
+        style={{
+          padding: "var(--space-2) var(--space-3)",
+          fontSize: "var(--text-base)",
+          borderRadius: "var(--radius-md)",
+          border: `1px solid ${error ? "var(--color-error)" : "var(--color-border)"}`,
+          background: "var(--color-bg-elevated)",
+          color: "var(--color-text-primary)",
+          transition: "border-color var(--duration-fast) var(--ease-default), box-shadow var(--duration-fast) var(--ease-default)",
+          outline: "none",
+          resize: "vertical" as const,
+          fontFamily: "inherit",
+          ...style,
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = "var(--color-accent)";
+          e.currentTarget.style.boxShadow = "0 0 0 3px var(--color-accent-subtle)";
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = error ? "var(--color-error)" : "var(--color-border)";
+          e.currentTarget.style.boxShadow = "none";
+        }}
         {...props}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && (
+        <p style={{ fontSize: "var(--text-xs)", color: "var(--color-error-text)" }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

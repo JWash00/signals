@@ -4,17 +4,51 @@ interface CardProps {
   title?: string;
   children: ReactNode;
   className?: string;
+  action?: ReactNode;
+  padding?: boolean;
 }
 
-export function Card({ title, children, className = "" }: CardProps) {
+export function Card({ title, children, className = "", action, padding = true }: CardProps) {
   return (
     <div
-      className={`rounded-lg border border-gray-200 bg-white p-6 shadow-sm ${className}`}
+      className={`animate-fade-in ${className}`}
+      style={{
+        borderRadius: "var(--radius-lg)",
+        border: "1px solid var(--color-border)",
+        background: "var(--color-bg-elevated)",
+        boxShadow: "var(--shadow-xs)",
+      }}
     >
-      {title && (
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">{title}</h3>
+      {(title || action) && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "var(--space-4) var(--space-5)",
+            borderBottom: "1px solid var(--color-border-subtle)",
+          }}
+        >
+          {title && (
+            <h3
+              style={{
+                fontSize: "var(--text-base)",
+                fontWeight: 600,
+                color: "var(--color-text-primary)",
+                margin: 0,
+              }}
+            >
+              {title}
+            </h3>
+          )}
+          {action && <div>{action}</div>}
+        </div>
       )}
-      {children}
+      {padding ? (
+        <div style={{ padding: "var(--space-5)" }}>{children}</div>
+      ) : (
+        children
+      )}
     </div>
   );
 }

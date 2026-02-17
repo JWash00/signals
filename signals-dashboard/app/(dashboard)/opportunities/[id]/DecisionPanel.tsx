@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/Button";
 import { setOpportunityStatus } from "./actions";
 
 const STATUSES = [
@@ -67,19 +68,38 @@ export default function DecisionPanel({
 
   return (
     <div
+      className="animate-fade-in"
       style={{
-        border: "1px solid #e5e5e5",
-        borderRadius: 12,
-        padding: 16,
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-lg)",
+        padding: "var(--space-4)",
+        background: "var(--color-bg-elevated)",
       }}
     >
-      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Decision</div>
-      <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 12 }}>
+      <div
+        style={{
+          fontWeight: 600,
+          fontSize: "var(--text-base)",
+          color: "var(--color-text-primary)",
+          marginBottom: "var(--space-1)",
+        }}
+      >
+        Decision
+      </div>
+      <div
+        style={{
+          fontSize: "var(--text-sm)",
+          color: "var(--color-text-tertiary)",
+          marginBottom: "var(--space-3)",
+        }}
+      >
         Current status:{" "}
-        <span style={{ fontWeight: 700 }}>{currentStatus ?? "—"}</span>
+        <span style={{ fontWeight: 600, color: "var(--color-text-secondary)" }}>
+          {currentStatus ?? "\u2014"}
+        </span>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
         {STATUSES.map((s) => {
           const isActive = currentStatus === s;
           const isClicked = clickedStatus === s;
@@ -90,23 +110,28 @@ export default function DecisionPanel({
               onClick={() => handleClick(s)}
               disabled={isPending}
               style={{
-                padding: "8px 14px",
-                borderRadius: 8,
+                padding: "var(--space-2) var(--space-3)",
+                borderRadius: "var(--radius-md)",
                 border: isActive
-                  ? "2px solid #1a1a1a"
+                  ? "2px solid var(--color-accent)"
                   : isKilled
-                    ? "1px solid #fca5a5"
-                    : "1px solid #e5e5e5",
+                    ? "1px solid var(--color-error-border)"
+                    : "1px solid var(--color-border)",
                 background: isActive
-                  ? "#1a1a1a"
+                  ? "var(--color-accent-subtle)"
                   : isKilled
-                    ? "#fef2f2"
-                    : "white",
-                color: isActive ? "white" : isKilled ? "#991b1b" : "#1a1a1a",
-                fontWeight: 700,
-                fontSize: 13,
+                    ? "var(--color-error-bg)"
+                    : "var(--color-bg-elevated)",
+                color: isActive
+                  ? "var(--color-accent)"
+                  : isKilled
+                    ? "var(--color-error-text)"
+                    : "var(--color-text-primary)",
+                fontWeight: 600,
+                fontSize: "var(--text-sm)",
                 cursor: isPending ? "not-allowed" : "pointer",
-                opacity: isPending ? 0.7 : 1,
+                opacity: isPending ? 0.6 : 1,
+                transition: "all var(--duration-fast) var(--ease-default)",
               }}
             >
               {isClicked && isPending ? "Saving..." : s}
@@ -117,7 +142,15 @@ export default function DecisionPanel({
 
       {/* Kill reason input */}
       {showKillInput && (
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div
+          className="animate-fade-in"
+          style={{
+            marginTop: "var(--space-3)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-2)",
+          }}
+        >
           <textarea
             value={killReason}
             onChange={(e) => setKillReason(e.target.value)}
@@ -125,56 +158,48 @@ export default function DecisionPanel({
             rows={2}
             style={{
               width: "100%",
-              padding: 8,
-              borderRadius: 8,
-              border: "1px solid #fca5a5",
-              fontSize: 13,
+              padding: "var(--space-2) var(--space-3)",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--color-error-border)",
+              fontSize: "var(--text-sm)",
+              fontFamily: "inherit",
+              outline: "none",
+              resize: "vertical",
             }}
           />
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={confirmKill}
-              disabled={isPending}
-              style={{
-                padding: "8px 14px",
-                borderRadius: 8,
-                border: "1px solid #991b1b",
-                background: "#991b1b",
-                color: "white",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: isPending ? "not-allowed" : "pointer",
-              }}
-            >
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            <Button onClick={confirmKill} disabled={isPending} variant="danger" size="sm">
               {isPending ? "Saving..." : "Confirm Kill"}
-            </button>
-            <button
-              onClick={() => setShowKillInput(false)}
-              disabled={isPending}
-              style={{
-                padding: "8px 14px",
-                borderRadius: 8,
-                border: "1px solid #e5e5e5",
-                background: "white",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: "pointer",
-              }}
-            >
+            </Button>
+            <Button onClick={() => setShowKillInput(false)} disabled={isPending} variant="secondary" size="sm">
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {saved && (
-        <div style={{ marginTop: 8, fontSize: 13, color: "#16a34a", fontWeight: 600 }}>
+        <div
+          className="animate-fade-in"
+          style={{
+            marginTop: "var(--space-2)",
+            fontSize: "var(--text-sm)",
+            color: "var(--color-success-text)",
+            fontWeight: 600,
+          }}
+        >
           Saved
         </div>
       )}
 
       {error && (
-        <div style={{ marginTop: 8, fontSize: 13, color: "#dc2626" }}>
+        <div
+          style={{
+            marginTop: "var(--space-2)",
+            fontSize: "var(--text-sm)",
+            color: "var(--color-error-text)",
+          }}
+        >
           {error}
         </div>
       )}

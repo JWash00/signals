@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { ScoreCard } from "@/components/pmf/ScoreCard";
@@ -31,16 +32,23 @@ export default async function OpportunityDetailPage({
 
   if (error || !detail) {
     return (
-      <div className="rounded bg-red-50 p-4 text-red-600">
+      <div
+        style={{
+          padding: "var(--space-4)",
+          borderRadius: "var(--radius-md)",
+          background: "var(--color-error-bg)",
+          color: "var(--color-error-text)",
+          border: "1px solid var(--color-error-border)",
+          fontSize: "var(--text-sm)",
+        }}
+      >
         {error?.message ?? "Opportunity not found"}
       </div>
     );
   }
 
-  const hasScore =
-    detail.score_total != null && detail.verdict != null;
+  const hasScore = detail.score_total != null && detail.verdict != null;
 
-  // Parse artifacts from latest snapshot
   let artifacts: ArtifactsV1 = {};
   try {
     const latestSnapshot = await getLatestSnapshotForOpportunity(id);
@@ -51,19 +59,27 @@ export default async function OpportunityDetailPage({
       }
     }
   } catch {
-    // Snapshot read failed — artifacts stay empty
+    // Snapshot read failed
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {detail.title ?? `Opportunity ${id}`}
+        <h1
+          style={{
+            fontSize: "var(--text-2xl)",
+            fontWeight: 700,
+            color: "var(--color-text-primary)",
+            margin: 0,
+          }}
+        >
+          {(detail.title as string) ?? `Opportunity ${id}`}
         </h1>
         {detail.status && (
-          <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs text-gray-700">
-            {detail.status}
-          </span>
+          <div style={{ marginTop: "var(--space-2)" }}>
+            <Badge variant="default">{detail.status as string}</Badge>
+          </div>
         )}
       </div>
 
@@ -114,7 +130,9 @@ export default async function OpportunityDetailPage({
         {detail.competitors ? (
           <JsonBlock data={detail.competitors} />
         ) : (
-          <p className="text-sm text-gray-500">No competitors yet</p>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-tertiary)" }}>
+            No competitors yet
+          </p>
         )}
       </Card>
 
@@ -127,102 +145,26 @@ export default async function OpportunityDetailPage({
 
       {/* Add Competitor Form */}
       <Card title="Add Competitor">
-        <form action={addCompetitor} className="flex flex-col gap-4">
+        <form action={addCompetitor} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <input type="hidden" name="opportunity_id" value={id} />
-          <Input
-            id="comp-name"
-            name="name"
-            label="Name"
-            required
-            placeholder="Competitor name"
-          />
-          <Input
-            id="comp-url"
-            name="url"
-            label="URL"
-            placeholder="https://..."
-          />
-          <Input
-            id="comp-notes"
-            name="notes"
-            label="Notes"
-            placeholder="Optional notes"
-          />
+          <Input id="comp-name" name="name" label="Name" required placeholder="Competitor name" />
+          <Input id="comp-url" name="url" label="URL" placeholder="https://..." />
+          <Input id="comp-notes" name="notes" label="Notes" placeholder="Optional notes" />
           <Button type="submit">Add Competitor</Button>
         </form>
       </Card>
 
       {/* Run Analysis Form */}
       <Card title="Run Analysis">
-        <form action={runAnalysis} className="flex flex-col gap-4">
+        <form action={runAnalysis} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <input type="hidden" name="opportunity_id" value={id} />
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              id="demand_strength"
-              name="demand_strength"
-              label="Demand Strength (0-1)"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              required
-              placeholder="0.0"
-            />
-            <Input
-              id="pain_intensity"
-              name="pain_intensity"
-              label="Pain Intensity (0-1)"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              required
-              placeholder="0.0"
-            />
-            <Input
-              id="willingness_to_pay"
-              name="willingness_to_pay"
-              label="Willingness to Pay (0-1)"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              required
-              placeholder="0.0"
-            />
-            <Input
-              id="competitive_headroom"
-              name="competitive_headroom"
-              label="Competitive Headroom (0-1)"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              required
-              placeholder="0.0"
-            />
-            <Input
-              id="saturation"
-              name="saturation"
-              label="Saturation (0-1)"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              required
-              placeholder="0.0"
-            />
-            <Input
-              id="timing"
-              name="timing"
-              label="Timing (0-1)"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              required
-              placeholder="0.0"
-            />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+            <Input id="demand_strength" name="demand_strength" label="Demand Strength (0-1)" type="number" step="0.01" min="0" max="1" required placeholder="0.0" />
+            <Input id="pain_intensity" name="pain_intensity" label="Pain Intensity (0-1)" type="number" step="0.01" min="0" max="1" required placeholder="0.0" />
+            <Input id="willingness_to_pay" name="willingness_to_pay" label="Willingness to Pay (0-1)" type="number" step="0.01" min="0" max="1" required placeholder="0.0" />
+            <Input id="competitive_headroom" name="competitive_headroom" label="Competitive Headroom (0-1)" type="number" step="0.01" min="0" max="1" required placeholder="0.0" />
+            <Input id="saturation" name="saturation" label="Saturation (0-1)" type="number" step="0.01" min="0" max="1" required placeholder="0.0" />
+            <Input id="timing" name="timing" label="Timing (0-1)" type="number" step="0.01" min="0" max="1" required placeholder="0.0" />
           </div>
           <Button type="submit">Run Analysis</Button>
         </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/Button";
 import { createClusterFromSignal } from "./actions";
 
 export default function CreateClusterButton({ signalId }: { signalId: string }) {
@@ -22,33 +23,19 @@ export default function CreateClusterButton({ signalId }: { signalId: string }) 
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
-      <button
-        onClick={handleClick}
-        disabled={isPending}
-        style={{
-          padding: "10px 12px",
-          borderRadius: 10,
-          border: "1px solid #1a1a1a",
-          background: "#1a1a1a",
-          color: "white",
-          cursor: isPending ? "not-allowed" : "pointer",
-          fontWeight: 700,
-          fontSize: 13,
-          opacity: isPending ? 0.7 : 1,
-        }}
-      >
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", flexShrink: 0 }}>
+      <Button onClick={handleClick} disabled={isPending} loading={isPending} size="sm">
         {isPending ? "Saving..." : "Create Cluster"}
-      </button>
+      </Button>
 
       {success && (
-        <div style={{ fontSize: 12, color: "#16a34a", fontWeight: 600 }}>
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-success-text)", fontWeight: 600 }}>
           Cluster created
         </div>
       )}
 
       {error && (
-        <div style={{ fontSize: 12, color: "#dc2626" }}>
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-error-text)" }}>
           {error}
         </div>
       )}

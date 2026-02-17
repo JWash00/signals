@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/Badge";
 import CreateClusterButton from "./CreateClusterButton";
 import CreateOpportunityButton from "./CreateOpportunityButton";
 
@@ -21,7 +22,7 @@ function prettyJSON(value: unknown) {
 
 function truncate(text: string, max = 320) {
   if (!text) return "";
-  return text.length > max ? text.slice(0, max) + "…" : text;
+  return text.length > max ? text.slice(0, max) + "\u2026" : text;
 }
 
 interface ClustersPageProps {
@@ -42,7 +43,6 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
   if (userError) throw userError;
   if (!user) redirect("/login");
 
-  // Counts + list in parallel
   const [countApproved, countClusters, listResult] = await Promise.all([
     supabase
       .from("raw_signals")
@@ -82,14 +82,37 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
   const items = listResult.data ?? [];
 
   return (
-    <div style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Clusters</h1>
-      <p style={{ opacity: 0.75, marginBottom: 16 }}>
-        Create clusters from approved signals, then create opportunities from clusters.
-      </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div>
+        <h1
+          style={{
+            fontSize: "var(--text-2xl)",
+            fontWeight: 700,
+            color: "var(--color-text-primary)",
+            margin: 0,
+          }}
+        >
+          Clusters
+        </h1>
+        <p
+          style={{
+            fontSize: "var(--text-sm)",
+            color: "var(--color-text-tertiary)",
+            marginTop: "var(--space-1)",
+          }}
+        >
+          Create clusters from approved signals, then create opportunities from clusters.
+        </p>
+      </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--space-1)",
+          borderBottom: "1px solid var(--color-border)",
+        }}
+      >
         {TABS.map((t) => {
           const isActive = t === selectedTab;
           return (
@@ -97,27 +120,29 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
               key={t}
               href={`/clusters?tab=${t}`}
               style={{
-                padding: "8px 16px",
-                borderRadius: 8,
-                border: isActive ? "1px solid #1a1a1a" : "1px solid #e5e5e5",
-                background: isActive ? "#1a1a1a" : "white",
-                color: isActive ? "white" : "#1a1a1a",
-                fontWeight: 700,
-                fontSize: 14,
+                padding: "var(--space-2) var(--space-4)",
+                fontSize: "var(--text-sm)",
+                fontWeight: isActive ? 600 : 500,
+                color: isActive ? "var(--color-accent)" : "var(--color-text-secondary)",
                 textDecoration: "none",
+                borderBottom: isActive
+                  ? "2px solid var(--color-accent)"
+                  : "2px solid transparent",
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
+                gap: "var(--space-2)",
+                marginBottom: -1,
+                transition: "all var(--duration-fast) var(--ease-default)",
               }}
             >
               {tabLabels[t]}
               <span
                 style={{
-                  fontSize: 11,
-                  padding: "1px 6px",
-                  borderRadius: 9999,
-                  background: isActive ? "rgba(255,255,255,0.2)" : "#f0f0f0",
-                  color: isActive ? "white" : "#666",
+                  fontSize: "var(--text-xs)",
+                  padding: "0 6px",
+                  borderRadius: "var(--radius-full)",
+                  background: isActive ? "var(--color-accent-subtle)" : "var(--color-bg-sunken)",
+                  color: isActive ? "var(--color-accent)" : "var(--color-text-tertiary)",
                   fontWeight: 600,
                 }}
               >
@@ -130,40 +155,81 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
 
       {/* Content */}
       {items.length === 0 ? (
-        <div style={{ padding: 16, border: "1px solid #e5e5e5", borderRadius: 12 }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>
+        <div
+          style={{
+            padding: "var(--space-10) var(--space-5)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-lg)",
+            background: "var(--color-bg-elevated)",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 600,
+              color: "var(--color-text-primary)",
+              marginBottom: "var(--space-2)",
+            }}
+          >
             {selectedTab === "approved" ? "No approved signals" : "No clusters yet"}
           </div>
-          <div style={{ opacity: 0.75 }}>Nothing here yet.</div>
+          <div style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-sm)" }}>
+            Nothing here yet.
+          </div>
         </div>
       ) : selectedTab === "approved" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="stagger" style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {items.map((s: Record<string, unknown>) => (
             <div
               key={s.id as string}
               style={{
-                border: "1px solid #e5e5e5",
-                borderRadius: 12,
-                padding: 14,
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-lg)",
+                padding: "var(--space-4)",
+                background: "var(--color-bg-elevated)",
                 display: "flex",
                 flexDirection: "column",
-                gap: 10,
+                gap: "var(--space-3)",
+                transition: "box-shadow var(--duration-fast) var(--ease-default)",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)" }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700 }}>{String(s.source ?? "")}</span>
-                    {s.created_at ? (
-                      <span> · {new Date(s.created_at as string).toLocaleString()}</span>
-                    ) : null}
+                  <div
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      color: "var(--color-text-tertiary)",
+                      marginBottom: "var(--space-1)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "var(--space-2)",
+                    }}
+                  >
+                    <Badge variant="default">{String(s.source ?? "")}</Badge>
+                    {s.created_at && (
+                      <span>{new Date(s.created_at as string).toLocaleDateString()}</span>
+                    )}
                   </div>
 
-                  <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
+                  <div
+                    style={{
+                      fontSize: "var(--text-lg)",
+                      fontWeight: 600,
+                      color: "var(--color-text-primary)",
+                      marginBottom: "var(--space-2)",
+                    }}
+                  >
                     {String(s.title ?? "") || "(no title)"}
                   </div>
 
-                  <div style={{ fontSize: 14, opacity: 0.9, whiteSpace: "pre-wrap" }}>
+                  <div
+                    style={{
+                      fontSize: "var(--text-sm)",
+                      color: "var(--color-text-secondary)",
+                      whiteSpace: "pre-wrap",
+                      lineHeight: "var(--leading-relaxed)",
+                    }}
+                  >
                     {truncate(String(s.content ?? ""), 320) || "(no content)"}
                   </div>
                 </div>
@@ -171,20 +237,30 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
                 <CreateClusterButton signalId={s.id as string} />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.75, marginBottom: 6 }}>
+                  <div
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      fontWeight: 600,
+                      color: "var(--color-text-tertiary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: "var(--space-2)",
+                    }}
+                  >
                     engagement_proxy
                   </div>
                   <pre
                     style={{
                       margin: 0,
-                      padding: 10,
-                      borderRadius: 10,
-                      border: "1px solid #f0f0f0",
-                      background: "#fafafa",
+                      padding: "var(--space-3)",
+                      borderRadius: "var(--radius-md)",
+                      border: "1px solid var(--color-border-subtle)",
+                      background: "var(--color-bg-sunken)",
                       overflowX: "auto",
-                      fontSize: 12,
+                      fontSize: "var(--text-xs)",
+                      fontFamily: "var(--font-mono), monospace",
                     }}
                   >
                     {prettyJSON(s.engagement_proxy)}
@@ -192,18 +268,28 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
                 </div>
 
                 <details>
-                  <summary style={{ cursor: "pointer", fontWeight: 700, opacity: 0.8 }}>
-                    metadata (collapsed)
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: "var(--text-xs)",
+                      color: "var(--color-text-tertiary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    metadata
                   </summary>
                   <pre
                     style={{
-                      marginTop: 10,
-                      padding: 10,
-                      borderRadius: 10,
-                      border: "1px solid #f0f0f0",
-                      background: "#fafafa",
+                      marginTop: "var(--space-2)",
+                      padding: "var(--space-3)",
+                      borderRadius: "var(--radius-md)",
+                      border: "1px solid var(--color-border-subtle)",
+                      background: "var(--color-bg-sunken)",
                       overflowX: "auto",
-                      fontSize: 12,
+                      fontSize: "var(--text-xs)",
+                      fontFamily: "var(--font-mono), monospace",
                     }}
                   >
                     {prettyJSON(s.metadata)}
@@ -214,28 +300,41 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
           ))}
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="stagger" style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {items.map((c: Record<string, unknown>) => (
             <div
               key={c.id as string}
               style={{
-                border: "1px solid #e5e5e5",
-                borderRadius: 12,
-                padding: 14,
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-lg)",
+                padding: "var(--space-4)",
+                background: "var(--color-bg-elevated)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
-                gap: 12,
+                gap: "var(--space-3)",
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
+                <div
+                  style={{
+                    fontSize: "var(--text-lg)",
+                    fontWeight: 600,
+                    color: "var(--color-text-primary)",
+                    marginBottom: "var(--space-1)",
+                  }}
+                >
                   {String(c.title ?? "(no title)")}
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>
-                  {String(c.pain_category ?? "")}
+                <div style={{ marginBottom: "var(--space-2)" }}>
+                  <Badge variant="accent">{String(c.pain_category ?? "")}</Badge>
                 </div>
-                <div style={{ fontSize: 14, opacity: 0.9 }}>
+                <div
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    color: "var(--color-text-secondary)",
+                  }}
+                >
                   {truncate(String(c.description ?? ""), 220) || "(no description)"}
                 </div>
               </div>

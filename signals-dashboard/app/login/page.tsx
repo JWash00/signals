@@ -43,38 +43,106 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-6 text-center text-2xl font-bold text-gray-900">
-          PMF Dashboard
-        </h1>
-
-        <div className="mb-6 flex rounded-md border border-gray-200">
-          <button
-            type="button"
-            onClick={() => setMode("signin")}
-            className={`flex-1 py-2 text-sm font-medium ${
-              mode === "signin"
-                ? "bg-blue-600 text-white"
-                : "text-gray-600 hover:bg-gray-50"
-            } rounded-l-md`}
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--color-bg)",
+      }}
+    >
+      <div
+        className="animate-fade-in"
+        style={{
+          width: "100%",
+          maxWidth: 400,
+          borderRadius: "var(--radius-xl)",
+          border: "1px solid var(--color-border)",
+          background: "var(--color-bg-elevated)",
+          padding: "var(--space-8)",
+          boxShadow: "var(--shadow-lg)",
+        }}
+      >
+        {/* Brand */}
+        <div style={{ textAlign: "center", marginBottom: "var(--space-8)" }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: "var(--radius-lg)",
+              background: "var(--color-accent)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
+              fontSize: "var(--text-lg)",
+              fontWeight: 800,
+              marginBottom: "var(--space-3)",
+            }}
           >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("signup")}
-            className={`flex-1 py-2 text-sm font-medium ${
-              mode === "signup"
-                ? "bg-blue-600 text-white"
-                : "text-gray-600 hover:bg-gray-50"
-            } rounded-r-md`}
+            S
+          </div>
+          <h1
+            style={{
+              fontSize: "var(--text-2xl)",
+              fontWeight: 700,
+              color: "var(--color-text-primary)",
+              margin: 0,
+            }}
           >
-            Sign Up
-          </button>
+            Signals
+          </h1>
+          <p
+            style={{
+              fontSize: "var(--text-sm)",
+              color: "var(--color-text-tertiary)",
+              marginTop: "var(--space-1)",
+            }}
+          >
+            PMF scoring and opportunity tracking
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Mode toggle */}
+        <div
+          style={{
+            display: "flex",
+            marginBottom: "var(--space-6)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--color-border)",
+            overflow: "hidden",
+          }}
+        >
+          {(["signin", "signup"] as const).map((m) => {
+            const isActive = mode === m;
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                style={{
+                  flex: 1,
+                  padding: "var(--space-2) var(--space-4)",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all var(--duration-fast) var(--ease-default)",
+                  background: isActive ? "var(--color-accent)" : "var(--color-bg-elevated)",
+                  color: isActive ? "var(--color-text-inverted)" : "var(--color-text-secondary)",
+                }}
+              >
+                {m === "signin" ? "Sign In" : "Sign Up"}
+              </button>
+            );
+          })}
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
+        >
           <Input
             id="email"
             label="Email"
@@ -96,12 +164,21 @@ export default function LoginPage() {
           />
 
           {error && (
-            <p className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+            <div
+              style={{
+                padding: "var(--space-3)",
+                borderRadius: "var(--radius-md)",
+                background: "var(--color-error-bg)",
+                color: "var(--color-error-text)",
+                border: "1px solid var(--color-error-border)",
+                fontSize: "var(--text-sm)",
+              }}
+            >
               {error}
-            </p>
+            </div>
           )}
 
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} loading={loading} size="lg">
             {loading
               ? "Loading..."
               : mode === "signin"
