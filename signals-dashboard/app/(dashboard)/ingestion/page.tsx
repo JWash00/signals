@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { RedditIngestButton } from "./RedditIngestButton";
+import { ProductHuntIngestButton } from "./ProductHuntIngestButton";
 
 export default function IngestionPage() {
   return (
@@ -15,6 +16,25 @@ export default function IngestionPage() {
           control posts per subreddit (default: 25).
         </p>
         <RedditIngestButton />
+      </Card>
+
+      <Card title="Product Hunt">
+        <p className="mb-4 text-sm text-gray-500">
+          Fetch posts from Product Hunt and insert into raw_signals.{" "}
+          <strong>Live</strong> grabs the newest posts within a time window.{" "}
+          <strong>Backfill</strong> pages through older posts for historical data.{" "}
+          Requires{" "}
+          <code className="rounded bg-gray-100 px-1">
+            PRODUCT_HUNT_CLIENT_ID
+          </code>{" "}
+          and{" "}
+          <code className="rounded bg-gray-100 px-1">
+            PRODUCT_HUNT_CLIENT_SECRET
+          </code>{" "}
+          in your{" "}
+          <code className="rounded bg-gray-100 px-1">.env.local</code>.
+        </p>
+        <ProductHuntIngestButton />
       </Card>
     </div>
   );
