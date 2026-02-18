@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/ingest?job=ph_live",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/ingest?job=reddit_live",
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?job=ph_today",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?job=ph_backfill",
+      "schedule": "0 3 * * 0"
+    }
+  ]
+}

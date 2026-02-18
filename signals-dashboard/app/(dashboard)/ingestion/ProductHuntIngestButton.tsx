@@ -5,54 +5,93 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import {
   runProductHuntLive,
+  runProductHuntTodaysWinners,
   runProductHuntBackfill,
 } from "./actions";
 
-function ResultMessage({ inserted, skipped }: { inserted: number; skipped: number }) {
-  if (inserted === 0 && skipped === 0) {
-    return (
-      <p className="text-sm text-amber-600">
-        No posts found in this window. Try increasing the window.
-      </p>
-    );
-  }
-  if (inserted === 0 && skipped > 0) {
-    return (
-      <p className="text-sm text-gray-500">
-        Everything in this window was already saved. ({skipped} duplicates)
-      </p>
-    );
-  }
+function ResultMessage({
+  fetched,
+  inserted,
+  skipped,
+  invalid,
+  note,
+}: {
+  fetched: number;
+  inserted: number;
+  skipped: number;
+  invalid: number;
+  note?: string;
+}) {
   return (
-    <p className="text-sm text-gray-700">
-      Inserted: <span className="font-semibold">{inserted}</span>, Skipped:{" "}
-      <span className="font-semibold">{skipped}</span>
-    </p>
+    <div className="space-y-1">
+      {fetched === 0 ? (
+        <p className="text-sm text-amber-600">
+          No posts found in this window.
+        </p>
+      ) : (
+        <p className="text-sm text-gray-700">
+          Fetched from Product Hunt:{" "}
+          <span className="font-semibold">{fetched}</span>
+          {" · "}New to Signals (inserted):{" "}
+          <span className="font-semibold">{inserted}</span>
+          {" · "}Already saved (duplicates):{" "}
+          <span className="font-semibold">{skipped}</span>
+          {invalid > 0 && (
+            <>
+              {" · "}
+              <span className="text-red-600">
+                Skipped invalid: <span className="font-semibold">{invalid}</span>
+              </span>
+            </>
+          )}
+        </p>
+      )}
+      {note && <p className="text-xs text-gray-400 italic">{note}</p>}
+    </div>
   );
 }
 
 export function ProductHuntIngestButton() {
   const router = useRouter();
 
+  // Shared pending check — disable all buttons while any is running
+  const [livePending, startLiveTransition] = useTransition();
+  const [todayPending, startTodayTransition] = useTransition();
+  const [backfillPending, startBackfillTransition] = useTransition();
+  const anyPending = livePending || todayPending || backfillPending;
+
   // Live state
   const [liveResult, setLiveResult] = useState<{
+    fetched: number;
     inserted: number;
     skipped: number;
-    windowHours: number;
+    invalid: number;
+    windowLabel: string;
   } | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [livePending, startLiveTransition] = useTransition();
+
+  // Today state
+  const [todayResult, setTodayResult] = useState<{
+    fetched: number;
+    inserted: number;
+    skipped: number;
+    invalid: number;
+    windowLabel: string;
+    note?: string;
+  } | null>(null);
+  const [todayError, setTodayError] = useState<string | null>(null);
 
   // Backfill state
   const [backfillResult, setBackfillResult] = useState<{
+    fetched: number;
     inserted: number;
     skipped: number;
-    windowDays: number;
+    invalid: number;
+    windowLabel: string;
     pagesRun: number;
-    pageSize: number;
+    backfillComplete: boolean;
   } | null>(null);
   const [backfillError, setBackfillError] = useState<string | null>(null);
-  const [backfillPending, startBackfillTransition] = useTransition();
 
   function handleLive() {
     setLiveError(null);
@@ -62,11 +101,21 @@ export function ProductHuntIngestButton() {
       if (!res.ok) {
         setLiveError(res.error);
       } else {
-        setLiveResult({
-          inserted: res.inserted,
-          skipped: res.skipped,
-          windowHours: res.windowHours,
-        });
+        setLiveResult(res);
+        router.refresh();
+      }
+    });
+  }
+
+  function handleToday() {
+    setTodayError(null);
+    setTodayResult(null);
+    startTodayTransition(async () => {
+      const res = await runProductHuntTodaysWinners();
+      if (!res.ok) {
+        setTodayError(res.error);
+      } else {
+        setTodayResult(res);
         router.refresh();
       }
     });
@@ -80,13 +129,7 @@ export function ProductHuntIngestButton() {
       if (!res.ok) {
         setBackfillError(res.error);
       } else {
-        setBackfillResult({
-          inserted: res.inserted,
-          skipped: res.skipped,
-          windowDays: res.windowDays,
-          pagesRun: res.pagesRun,
-          pageSize: res.pageSize,
-        });
+        setBackfillResult(res);
         router.refresh();
       }
     });
@@ -96,41 +139,74 @@ export function ProductHuntIngestButton() {
     <div className="space-y-4">
       {/* Live */}
       <div className="space-y-2">
-        <Button onClick={handleLive} disabled={livePending || backfillPending}>
+        <Button onClick={handleLive} disabled={anyPending}>
           {livePending ? "Ingesting..." : "Ingest Product Hunt (Live)"}
         </Button>
         <p className="text-xs text-gray-400">
-          Window: last{" "}
-          {liveResult?.windowHours ?? process.env.NEXT_PUBLIC_PH_LIVE_HOURS ?? "24"}{" "}
-          hours
+          Pulls newest posts since last run (or last{" "}
+          {liveResult?.windowLabel ?? "24h"} on first run).
         </p>
         {liveResult && (
           <ResultMessage
+            fetched={liveResult.fetched}
             inserted={liveResult.inserted}
             skipped={liveResult.skipped}
+            invalid={liveResult.invalid}
           />
         )}
         {liveError && <p className="text-sm text-red-600">{liveError}</p>}
       </div>
 
-      {/* Backfill */}
+      {/* Today (newest since midnight UTC) */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
-        <Button onClick={handleBackfill} disabled={livePending || backfillPending}>
-          {backfillPending ? "Backfilling..." : "Backfill Product Hunt (Historical)"}
+        <Button onClick={handleToday} disabled={anyPending}>
+          {todayPending
+            ? "Ingesting..."
+            : "Ingest Product Hunt (Today)"}
         </Button>
         <p className="text-xs text-gray-400">
-          Window: last{" "}
-          {backfillResult?.windowDays ?? "30"} days, Pages:{" "}
-          {backfillResult?.pagesRun ?? "5"}, Page size:{" "}
-          {backfillResult?.pageSize ?? "20"}
+          Pulls today&apos;s posts since midnight UTC.
+        </p>
+        {todayResult && (
+          <ResultMessage
+            fetched={todayResult.fetched}
+            inserted={todayResult.inserted}
+            skipped={todayResult.skipped}
+            invalid={todayResult.invalid}
+            note={todayResult.note}
+          />
+        )}
+        {todayError && <p className="text-sm text-red-600">{todayError}</p>}
+      </div>
+
+      {/* Backfill */}
+      <div className="space-y-2 border-t border-gray-100 pt-4">
+        <Button onClick={handleBackfill} disabled={anyPending}>
+          {backfillPending
+            ? "Backfilling..."
+            : "Backfill Product Hunt (Historical)"}
+        </Button>
+        <p className="text-xs text-gray-400">
+          Pages through the last {backfillResult?.windowLabel ?? "30d"}.
+          Resumes from where it left off.
+          {backfillResult
+            ? ` Ran ${backfillResult.pagesRun} page(s).`
+            : ""}
+          {backfillResult?.backfillComplete
+            ? " Backfill complete!"
+            : ""}
         </p>
         {backfillResult && (
           <ResultMessage
+            fetched={backfillResult.fetched}
             inserted={backfillResult.inserted}
             skipped={backfillResult.skipped}
+            invalid={backfillResult.invalid}
           />
         )}
-        {backfillError && <p className="text-sm text-red-600">{backfillError}</p>}
+        {backfillError && (
+          <p className="text-sm text-red-600">{backfillError}</p>
+        )}
       </div>
     </div>
   );

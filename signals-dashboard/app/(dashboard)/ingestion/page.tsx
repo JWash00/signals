@@ -7,6 +7,11 @@ export default function IngestionPage() {
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-bold text-gray-900">Ingestion</h1>
 
+      <p className="text-sm text-gray-500 -mt-4">
+        Auto-ingestion is enabled in production via cron. Buttons below are
+        manual override.
+      </p>
+
       <Card title="Reddit: SaaS + Entrepreneur">
         <p className="mb-4 text-sm text-gray-500">
           Fetch new posts from r/SaaS and r/Entrepreneur and insert into

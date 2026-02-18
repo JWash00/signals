@@ -150,8 +150,23 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontWeight: 700 }}>{s.source}</span>
+                    {(s.source === "product_hunt" || s.source === "producthunt") && s.metadata?.ph_mode && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                          background: s.metadata.ph_mode === "TODAY" ? "#f59e0b" : s.metadata.ph_mode === "BACKFILL" ? "#8b5cf6" : "#3b82f6",
+                          color: "#fff",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        PH {"\u00b7"} {s.metadata.ph_mode === "LIVE" ? `Live ${s.metadata.ph_window ?? ""}` : s.metadata.ph_mode === "TODAY" ? "Today\u2019s Winners" : `Backfill ${s.metadata.ph_window ?? ""}`}
+                      </span>
+                    )}
                     {s.created_at ? <span> · {new Date(s.created_at).toLocaleString()}</span> : null}
                   </div>
 

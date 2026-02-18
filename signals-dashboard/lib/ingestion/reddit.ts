@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const SUBREDDITS = ["SaaS", "Entrepreneur"];
 
@@ -39,9 +40,10 @@ export interface IngestionResult {
 
 export async function ingestRedditForUser(
   ownerId: string,
+  supabaseClient?: SupabaseClient,
 ): Promise<IngestionResult> {
   const limit = parseInt(process.env.REDDIT_LIMIT ?? "25", 10);
-  const supabase = await createClient();
+  const supabase = supabaseClient ?? (await createClient());
 
   const results: SubredditResult[] = [];
 
@@ -68,6 +70,13 @@ export async function ingestRedditForUser(
 
       const post = child.data;
 
+      // Hard guard: never insert a row with null source_id
+      if (!post.id) {
+        console.warn("Reddit skip: post missing id in r/" + subreddit);
+        subSkipped++;
+        continue;
+      }
+
       const row = {
         owner_id: ownerId,
         source: "reddit",
@@ -86,6 +95,8 @@ export async function ingestRedditForUser(
           created_utc: post.created_utc,
           permalink: post.permalink,
           flair: post.link_flair_text ?? null,
+          reddit_mode: "LIVE" as const,
+          reddit_window: "latest",
         },
         status: "new",
       };
