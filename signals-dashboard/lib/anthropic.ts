@@ -1,4 +1,6 @@
 import { logAiUsage } from "@/lib/aiUsage";
+import { getAIBudgetStatus } from "@/lib/ai/budget";
+import { logAIBudgetBlocked } from "@/lib/ai/logBudgetBlock";
 
 export interface AISummaryV1 {
   summary: string;
@@ -70,6 +72,18 @@ export async function generateOpportunitySummaryV1(input: {
 }): Promise<AISummaryResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+
+  // Budget guard: block AI if daily spend limit is reached
+  const budget = await getAIBudgetStatus();
+  if (!budget.allowed) {
+    console.warn("[anthropic] Budget blocked:", budget.reason);
+    await logAIBudgetBlocked({
+      reason: budget.reason,
+      budget_usd: budget.budgetUsd,
+      spent_today_usd: budget.spentTodayUsd,
+    });
+    throw new Error(`AI budget exceeded: ${budget.reason}`);
+  }
 
   const { modelFromEnv, modelUsed } = resolveModel();
 

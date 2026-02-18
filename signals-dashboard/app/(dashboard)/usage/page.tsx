@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { Card } from "@/components/ui/Card";
+import { getAIBudgetStatus } from "@/lib/ai/budget";
 
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "claude-sonnet-4-6": { input: 3, output: 15 },
@@ -32,8 +33,9 @@ export default async function UsagePage() {
     now.getTime() - 7 * 24 * 60 * 60 * 1000,
   ).toISOString();
 
-  // ── Queries in parallel ────────────────────────────────────────
-  const [todayRes, weekRes, eventsRes] = await Promise.all([
+  // ── Budget status + queries in parallel ───────────────────────
+  const [budget, todayRes, weekRes, eventsRes] = await Promise.all([
+    getAIBudgetStatus(),
     // Today totals (include model + per-token columns for cost)
     supabase
       .from("ai_usage_events")
@@ -103,6 +105,139 @@ export default async function UsagePage() {
       >
         AI Usage
       </h1>
+
+      {/* Budget guardrail box */}
+      <div
+        style={{
+          padding: "var(--space-4)",
+          borderRadius: "var(--radius-lg)",
+          border: `2px solid ${budget.allowed ? "var(--color-success, #22c55e)" : "var(--color-danger, #ef4444)"}`,
+          background: budget.allowed
+            ? "var(--color-success-bg, rgba(34,197,94,0.08))"
+            : "var(--color-danger-bg, rgba(239,68,68,0.08))",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "var(--space-2)",
+          }}
+        >
+          <span
+            style={{
+              fontSize: "var(--text-lg)",
+              fontWeight: 700,
+              color: "var(--color-text-primary)",
+            }}
+          >
+            AI Budget (Today, UTC)
+          </span>
+          <span
+            style={{
+              fontSize: "var(--text-sm)",
+              fontWeight: 600,
+              padding: "var(--space-1) var(--space-2)",
+              borderRadius: "var(--radius-md)",
+              color: "#fff",
+              background: budget.allowed ? "#22c55e" : "#ef4444",
+            }}
+          >
+            {budget.allowed ? "AI ON" : "AI OFF until tomorrow (UTC)"}
+          </span>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: "var(--space-3)",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: "var(--text-xs)",
+                color: "var(--color-text-tertiary)",
+                textTransform: "uppercase" as const,
+                letterSpacing: "0.05em",
+                marginBottom: "var(--space-1)",
+              }}
+            >
+              Budget
+            </div>
+            <div
+              style={{
+                fontSize: "var(--text-xl)",
+                fontWeight: 700,
+                color: "var(--color-text-primary)",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              ${budget.budgetUsd.toFixed(2)}
+            </div>
+          </div>
+          <div>
+            <div
+              style={{
+                fontSize: "var(--text-xs)",
+                color: "var(--color-text-tertiary)",
+                textTransform: "uppercase" as const,
+                letterSpacing: "0.05em",
+                marginBottom: "var(--space-1)",
+              }}
+            >
+              Spent
+            </div>
+            <div
+              style={{
+                fontSize: "var(--text-xl)",
+                fontWeight: 700,
+                color: "var(--color-text-primary)",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              ${budget.spentTodayUsd.toFixed(4)}
+            </div>
+          </div>
+          <div>
+            <div
+              style={{
+                fontSize: "var(--text-xs)",
+                color: "var(--color-text-tertiary)",
+                textTransform: "uppercase" as const,
+                letterSpacing: "0.05em",
+                marginBottom: "var(--space-1)",
+              }}
+            >
+              Remaining
+            </div>
+            <div
+              style={{
+                fontSize: "var(--text-xl)",
+                fontWeight: 700,
+                color: budget.allowed
+                  ? "var(--color-success, #22c55e)"
+                  : "var(--color-danger, #ef4444)",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              ${budget.remainingUsd.toFixed(4)}
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: "var(--text-xs)",
+            color: "var(--color-text-tertiary)",
+            marginTop: "var(--space-2)",
+          }}
+        >
+          {budget.allowed
+            ? "AI can make calls. When spending hits the budget, AI stops until midnight UTC."
+            : "AI is paused because today's spending hit the daily limit. It turns back on at midnight UTC."}
+        </div>
+      </div>
 
       {/* Summary boxes */}
       <div
