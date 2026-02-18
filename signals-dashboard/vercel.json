@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/product-hunt-live",
-      "schedule": "0 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/ingest?job=reddit_live",
