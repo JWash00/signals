@@ -26,15 +26,12 @@ function isAuthorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
 
-  // Vercel cron sends Authorization: Bearer <secret>
   const authHeader = req.headers.get("authorization");
   if (authHeader === `Bearer ${secret}`) return true;
 
-  // Manual curl: x-cron-secret header
   const cronHeader = req.headers.get("x-cron-secret");
   if (cronHeader === secret) return true;
 
-  // Browser / GET testing: ?secret=...
   const querySecret = req.nextUrl.searchParams.get("secret");
   if (querySecret === secret) return true;
 
@@ -43,7 +40,7 @@ function isAuthorized(req: NextRequest): boolean {
 
 interface JobResult {
   inserted: number;
-  skipped: number;
+  duplicates: number;
   error?: string;
 }
 
@@ -54,38 +51,51 @@ async function runJob(
 ): Promise<Record<string, JobResult>> {
   const results: Record<string, JobResult> = {};
 
-  const jobs: JobName[] = job === "all"
-    ? ["reddit_live", "ph_live", "ph_today", "ph_backfill"]
-    : [job];
+  const jobs: JobName[] =
+    job === "all"
+      ? ["reddit_live", "ph_live", "ph_today", "ph_backfill"]
+      : [job];
 
   for (const j of jobs) {
     try {
       switch (j) {
         case "reddit_live": {
           const r = await ingestRedditForUser(ownerId, supabase);
-          results.reddit_live = { inserted: r.inserted, skipped: r.skipped };
+          results.reddit_live = {
+            inserted: r.inserted,
+            duplicates: r.duplicates,
+          };
           break;
         }
         case "ph_live": {
           const r = await ingestProductHuntLive(ownerId, supabase);
-          results.ph_live = { inserted: r.inserted, skipped: r.skipped };
+          results.ph_live = {
+            inserted: r.inserted,
+            duplicates: r.duplicates,
+          };
           break;
         }
         case "ph_today": {
           const r = await ingestProductHuntTodaysWinners(ownerId, supabase);
-          results.ph_today = { inserted: r.inserted, skipped: r.skipped };
+          results.ph_today = {
+            inserted: r.inserted,
+            duplicates: r.duplicates,
+          };
           break;
         }
         case "ph_backfill": {
           const r = await backfillProductHuntHistorical(ownerId, supabase);
-          results.ph_backfill = { inserted: r.inserted, skipped: r.skipped };
+          results.ph_backfill = {
+            inserted: r.inserted,
+            duplicates: r.duplicates,
+          };
           break;
         }
       }
     } catch (e) {
       results[j] = {
         inserted: 0,
-        skipped: 0,
+        duplicates: 0,
         error: e instanceof Error ? e.message : "Unknown error",
       };
     }
@@ -110,7 +120,6 @@ async function handleRequest(req: NextRequest) {
     );
   }
 
-  // Get job from query string or body
   let job: string | null = req.nextUrl.searchParams.get("job");
 
   if (!job && req.method === "POST") {
@@ -118,7 +127,7 @@ async function handleRequest(req: NextRequest) {
       const body = await req.json();
       job = body?.job ?? null;
     } catch {
-      // No body or invalid JSON — fall through
+      // No body or invalid JSON
     }
   }
 

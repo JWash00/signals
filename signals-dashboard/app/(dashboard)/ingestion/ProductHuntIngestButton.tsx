@@ -9,88 +9,120 @@ import {
   runProductHuntBackfill,
 } from "./actions";
 
-function ResultMessage({
+// ── Shared result display ──────────────────────────────────
+
+function Counts({
   fetched,
   inserted,
-  skipped,
+  duplicates,
   invalid,
-  note,
 }: {
   fetched: number;
   inserted: number;
-  skipped: number;
+  duplicates: number;
   invalid: number;
-  note?: string;
 }) {
+  if (fetched === 0) {
+    return (
+      <p className="text-sm text-amber-600">No posts found in this window.</p>
+    );
+  }
   return (
-    <div className="space-y-1">
-      {fetched === 0 ? (
-        <p className="text-sm text-amber-600">
-          No posts found in this window.
-        </p>
-      ) : (
-        <p className="text-sm text-gray-700">
-          Fetched from Product Hunt:{" "}
-          <span className="font-semibold">{fetched}</span>
-          {" · "}New to Signals (inserted):{" "}
-          <span className="font-semibold">{inserted}</span>
-          {" · "}Already saved (duplicates):{" "}
-          <span className="font-semibold">{skipped}</span>
-          {invalid > 0 && (
-            <>
-              {" · "}
-              <span className="text-red-600">
-                Skipped invalid: <span className="font-semibold">{invalid}</span>
-              </span>
-            </>
-          )}
-        </p>
+    <p className="text-sm text-gray-700">
+      Fetched: <span className="font-semibold">{fetched}</span>
+      {" · "}Inserted: <span className="font-semibold">{inserted}</span>
+      {" · "}Duplicates: <span className="font-semibold">{duplicates}</span>
+      {invalid > 0 && (
+        <>
+          {" · "}
+          <span className="text-red-600">
+            Invalid: <span className="font-semibold">{invalid}</span>
+          </span>
+        </>
       )}
-      {note && <p className="text-xs text-gray-400 italic">{note}</p>}
+    </p>
+  );
+}
+
+function CursorInfo({
+  before,
+  after,
+}: {
+  before: string | null;
+  after: string | null;
+}) {
+  const changed = before !== after;
+  return (
+    <div className="text-xs font-mono text-gray-400 space-y-0.5">
+      <p>
+        Cursor before:{" "}
+        <span className="text-gray-600">{before ?? "(none)"}</span>
+      </p>
+      <p>
+        Cursor after:{" "}
+        <span className={changed ? "text-green-600" : "text-amber-600"}>
+          {after ?? "(none)"}
+        </span>
+        {!changed && before !== null && (
+          <span className="ml-1 text-amber-600">(unchanged)</span>
+        )}
+      </p>
     </div>
   );
 }
 
+// ── Types ──────────────────────────────────────────────────
+
+interface LiveResult {
+  fetched: number;
+  inserted: number;
+  duplicates: number;
+  invalid: number;
+  cursorBefore: string | null;
+  cursorAfter: string | null;
+  lastSuccessAt: string | null;
+  postedAfter: string;
+  hasNextPage: boolean;
+}
+
+interface TodayResult {
+  fetched: number;
+  inserted: number;
+  duplicates: number;
+  invalid: number;
+  note?: string;
+}
+
+interface BackfillResult {
+  fetched: number;
+  inserted: number;
+  duplicates: number;
+  invalid: number;
+  cursorBefore: string | null;
+  cursorAfter: string | null;
+  pagesRun: number;
+  backfillComplete: boolean;
+}
+
+// ── Component ──────────────────────────────────────────────
+
 export function ProductHuntIngestButton() {
   const router = useRouter();
 
-  // Shared pending check — disable all buttons while any is running
   const [livePending, startLiveTransition] = useTransition();
   const [todayPending, startTodayTransition] = useTransition();
   const [backfillPending, startBackfillTransition] = useTransition();
   const anyPending = livePending || todayPending || backfillPending;
 
-  // Live state
-  const [liveResult, setLiveResult] = useState<{
-    fetched: number;
-    inserted: number;
-    skipped: number;
-    invalid: number;
-    windowLabel: string;
-  } | null>(null);
+  const [liveResult, setLiveResult] = useState<LiveResult | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
 
-  // Today state
-  const [todayResult, setTodayResult] = useState<{
-    fetched: number;
-    inserted: number;
-    skipped: number;
-    invalid: number;
-    windowLabel: string;
-    note?: string;
-  } | null>(null);
+  const [todayResult, setTodayResult] = useState<TodayResult | null>(null);
   const [todayError, setTodayError] = useState<string | null>(null);
 
-  // Backfill state
-  const [backfillResult, setBackfillResult] = useState<{
-    fetched: number;
-    inserted: number;
-    skipped: number;
-    invalid: number;
-    windowLabel: string;
-    pagesRun: number;
-    backfillComplete: boolean;
-  } | null>(null);
+  const [backfillResult, setBackfillResult] = useState<BackfillResult | null>(
+    null,
+  );
   const [backfillError, setBackfillError] = useState<string | null>(null);
 
   function handleLive() {
@@ -137,72 +169,108 @@ export function ProductHuntIngestButton() {
 
   return (
     <div className="space-y-4">
-      {/* Live */}
+      {/* ── Live ── */}
       <div className="space-y-2">
         <Button onClick={handleLive} disabled={anyPending}>
           {livePending ? "Ingesting..." : "Ingest Product Hunt (Live)"}
         </Button>
         <p className="text-xs text-gray-400">
-          Pulls newest posts since last run (or last{" "}
-          {liveResult?.windowLabel ?? "24h"} on first run).
+          Pulls newest posts since last run (or last 24h on first run).
+          Advances cursor each run.
         </p>
         {liveResult && (
-          <ResultMessage
-            fetched={liveResult.fetched}
-            inserted={liveResult.inserted}
-            skipped={liveResult.skipped}
-            invalid={liveResult.invalid}
-          />
+          <div className="space-y-1 rounded border border-gray-100 bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">
+              Window starts at:{" "}
+              <span className="font-mono text-gray-700">
+                {liveResult.postedAfter}
+              </span>
+            </p>
+            {liveResult.lastSuccessAt && (
+              <p className="text-xs text-gray-500">
+                Last success:{" "}
+                <span className="font-mono text-gray-700">
+                  {liveResult.lastSuccessAt}
+                </span>
+              </p>
+            )}
+            <Counts
+              fetched={liveResult.fetched}
+              inserted={liveResult.inserted}
+              duplicates={liveResult.duplicates}
+              invalid={liveResult.invalid}
+            />
+            <CursorInfo
+              before={liveResult.cursorBefore}
+              after={liveResult.cursorAfter}
+            />
+            {liveResult.hasNextPage && (
+              <p className="text-xs text-amber-600">
+                More pages available — run again to continue.
+              </p>
+            )}
+          </div>
         )}
         {liveError && <p className="text-sm text-red-600">{liveError}</p>}
       </div>
 
-      {/* Today (newest since midnight UTC) */}
+      {/* ── Today ── */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
         <Button onClick={handleToday} disabled={anyPending}>
-          {todayPending
-            ? "Ingesting..."
-            : "Ingest Product Hunt (Today)"}
+          {todayPending ? "Ingesting..." : "Ingest Product Hunt (Today)"}
         </Button>
         <p className="text-xs text-gray-400">
           Pulls today&apos;s posts since midnight UTC.
         </p>
         {todayResult && (
-          <ResultMessage
-            fetched={todayResult.fetched}
-            inserted={todayResult.inserted}
-            skipped={todayResult.skipped}
-            invalid={todayResult.invalid}
-            note={todayResult.note}
-          />
+          <div className="space-y-1 rounded border border-gray-100 bg-gray-50 p-3">
+            <Counts
+              fetched={todayResult.fetched}
+              inserted={todayResult.inserted}
+              duplicates={todayResult.duplicates}
+              invalid={todayResult.invalid}
+            />
+            {todayResult.note && (
+              <p className="text-xs text-gray-400 italic">
+                {todayResult.note}
+              </p>
+            )}
+          </div>
         )}
         {todayError && <p className="text-sm text-red-600">{todayError}</p>}
       </div>
 
-      {/* Backfill */}
+      {/* ── Backfill ── */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
         <Button onClick={handleBackfill} disabled={anyPending}>
           {backfillPending
             ? "Backfilling..."
-            : "Backfill Product Hunt (Historical)"}
+            : "Backfill Product Hunt (Slow)"}
         </Button>
         <p className="text-xs text-gray-400">
-          Pages through the last {backfillResult?.windowLabel ?? "30d"}.
-          Resumes from where it left off.
-          {backfillResult
-            ? ` Ran ${backfillResult.pagesRun} page(s).`
-            : ""}
-          {backfillResult?.backfillComplete
-            ? " Backfill complete!"
-            : ""}
+          Pages through the last 30d. Resumes from where it left off.
         </p>
         {backfillResult && (
-          <ResultMessage
-            fetched={backfillResult.fetched}
-            inserted={backfillResult.inserted}
-            skipped={backfillResult.skipped}
-            invalid={backfillResult.invalid}
-          />
+          <div className="space-y-1 rounded border border-gray-100 bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">
+              Pages run: {backfillResult.pagesRun}
+              {backfillResult.backfillComplete && (
+                <span className="ml-2 text-green-600 font-medium">
+                  Backfill complete
+                </span>
+              )}
+            </p>
+            <Counts
+              fetched={backfillResult.fetched}
+              inserted={backfillResult.inserted}
+              duplicates={backfillResult.duplicates}
+              invalid={backfillResult.invalid}
+            />
+            <CursorInfo
+              before={backfillResult.cursorBefore}
+              after={backfillResult.cursorAfter}
+            />
+          </div>
         )}
         {backfillError && (
           <p className="text-sm text-red-600">{backfillError}</p>

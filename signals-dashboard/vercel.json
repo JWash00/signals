@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/ingest?job=ph_live",
+      "path": "/api/cron/product-hunt-live",
       "schedule": "0 * * * *"
     },
     {
