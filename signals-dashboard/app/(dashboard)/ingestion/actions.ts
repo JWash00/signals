@@ -1,10 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { ingestRedditForUser } from "@/lib/ingestion/reddit";
+import {
+  ingestRedditForUser,
+  type SubredditResult,
+} from "@/lib/ingestion/reddit";
 
 export async function runRedditIngestion(): Promise<
-  { ok: true; inserted: number; skipped: number } | { ok: false; error: string }
+  | { ok: true; results: SubredditResult[]; inserted: number; skipped: number }
+  | { ok: false; error: string }
 > {
   try {
     const supabase = await createClient();
@@ -17,8 +21,8 @@ export async function runRedditIngestion(): Promise<
       return { ok: false, error: "Not logged in" };
     }
 
-    const { inserted, skipped } = await ingestRedditForUser(user.id);
-    return { ok: true, inserted, skipped };
+    const { results, inserted, skipped } = await ingestRedditForUser(user.id);
+    return { ok: true, results, inserted, skipped };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
   }

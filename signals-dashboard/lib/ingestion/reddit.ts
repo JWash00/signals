@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
+const SUBREDDITS = ["SaaS", "Entrepreneur"];
+
 interface RedditPost {
   id: string;
   title: string;
@@ -23,25 +25,30 @@ interface RedditListing {
   };
 }
 
+export interface SubredditResult {
+  subreddit: string;
+  inserted: number;
+  skipped: number;
+}
+
+export interface IngestionResult {
+  results: SubredditResult[];
+  inserted: number;
+  skipped: number;
+}
+
 export async function ingestRedditForUser(
   ownerId: string,
-): Promise<{ inserted: number; skipped: number }> {
-  const subreddits = (process.env.REDDIT_SUBREDDITS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  if (subreddits.length === 0) {
-    throw new Error("REDDIT_SUBREDDITS env var is not set or empty");
-  }
-
+): Promise<IngestionResult> {
   const limit = parseInt(process.env.REDDIT_LIMIT ?? "25", 10);
   const supabase = await createClient();
 
-  let inserted = 0;
-  let skipped = 0;
+  const results: SubredditResult[] = [];
 
-  for (const subreddit of subreddits) {
+  for (const subreddit of SUBREDDITS) {
+    let subInserted = 0;
+    let subSkipped = 0;
+
     const url = `https://www.reddit.com/r/${subreddit}/new.json?limit=${limit}`;
 
     const res = await fetch(url, {
@@ -50,6 +57,7 @@ export async function ingestRedditForUser(
 
     if (!res.ok) {
       console.error(`Reddit fetch failed for r/${subreddit}: ${res.status}`);
+      results.push({ subreddit, inserted: 0, skipped: 0 });
       continue;
     }
 
@@ -87,16 +95,21 @@ export async function ingestRedditForUser(
       if (error) {
         if (error.code === "23505") {
           // Unique constraint violation — duplicate
-          skipped++;
+          subSkipped++;
         } else {
           console.error(`Insert error for ${post.id}:`, error.message);
-          skipped++;
+          subSkipped++;
         }
       } else {
-        inserted++;
+        subInserted++;
       }
     }
+
+    results.push({ subreddit, inserted: subInserted, skipped: subSkipped });
   }
 
-  return { inserted, skipped };
+  const inserted = results.reduce((sum, r) => sum + r.inserted, 0);
+  const skipped = results.reduce((sum, r) => sum + r.skipped, 0);
+
+  return { results, inserted, skipped };
 }

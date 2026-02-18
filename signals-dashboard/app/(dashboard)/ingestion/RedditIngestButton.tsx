@@ -5,8 +5,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { runRedditIngestion } from "./actions";
 
+interface SubredditResult {
+  subreddit: string;
+  inserted: number;
+  skipped: number;
+}
+
 export function RedditIngestButton() {
-  const [result, setResult] = useState<{
+  const [results, setResults] = useState<SubredditResult[] | null>(null);
+  const [totals, setTotals] = useState<{
     inserted: number;
     skipped: number;
   } | null>(null);
@@ -16,13 +23,15 @@ export function RedditIngestButton() {
 
   function handleClick() {
     setError(null);
-    setResult(null);
+    setResults(null);
+    setTotals(null);
     startTransition(async () => {
       const res = await runRedditIngestion();
       if (!res.ok) {
         setError(res.error);
       } else {
-        setResult({ inserted: res.inserted, skipped: res.skipped });
+        setResults(res.results);
+        setTotals({ inserted: res.inserted, skipped: res.skipped });
         router.refresh();
       }
     });
@@ -34,11 +43,21 @@ export function RedditIngestButton() {
         {isPending ? "Ingesting..." : "Ingest Reddit Now"}
       </Button>
 
-      {result && (
-        <p className="text-sm text-gray-700">
-          Inserted: <span className="font-semibold">{result.inserted}</span>,
-          Skipped: <span className="font-semibold">{result.skipped}</span>
-        </p>
+      {results && totals && (
+        <div className="space-y-1 text-sm text-gray-700">
+          {results.map((r) => (
+            <p key={r.subreddit}>
+              r/{r.subreddit} — Inserted:{" "}
+              <span className="font-semibold">{r.inserted}</span>, Skipped:{" "}
+              <span className="font-semibold">{r.skipped}</span>
+            </p>
+          ))}
+          <p className="pt-1 font-medium">
+            Total — Inserted:{" "}
+            <span className="font-semibold">{totals.inserted}</span>, Skipped:{" "}
+            <span className="font-semibold">{totals.skipped}</span>
+          </p>
+        </div>
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}

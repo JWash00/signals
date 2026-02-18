@@ -206,3 +206,29 @@ body {
 .stagger > *:nth-child(6) { animation-delay: 250ms; }
 .stagger > *:nth-child(7) { animation-delay: 300ms; }
 .stagger > *:nth-child(8) { animation-delay: 350ms; }
+
+/* ─── KPI Card Hover ────────────────────────────────────── */
+.kpi-card {
+  transition: border-color var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default),
+              transform var(--duration-fast) var(--ease-default);
+}
+.kpi-card:hover {
+  border-color: var(--color-accent-muted);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+/* ─── KPI Delta Indicators ──────────────────────────────── */
+.kpi-delta-positive { color: var(--color-success-text); }
+.kpi-delta-negative { color: var(--color-error-text); }
+.kpi-delta-neutral { color: var(--color-text-tertiary); }
+
+/* ─── Reduced Motion ────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .kpi-card:hover { transform: none; }
+  .animate-fade-in,
+  .animate-slide-in { animation: none; }
+  .animate-pulse-subtle { animation: none; }
+  .stagger > * { animation: none; }
+}
