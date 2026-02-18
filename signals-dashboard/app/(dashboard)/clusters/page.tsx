@@ -206,9 +206,9 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
                     }}
                   >
                     <Badge variant="default">{String(s.source ?? "")}</Badge>
-                    {s.created_at && (
+                    {s.created_at ? (
                       <span>{new Date(s.created_at as string).toLocaleDateString()}</span>
-                    )}
+                    ) : null}
                   </div>
 
                   <div

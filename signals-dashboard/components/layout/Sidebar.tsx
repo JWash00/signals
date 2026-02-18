@@ -10,6 +10,7 @@ const navItems = [
   { label: "Models", href: "/models", icon: "sliders" },
   { label: "Ingestion", href: "/ingestion", icon: "download" },
   { label: "Review", href: "/review", icon: "check-circle" },
+  { label: "Usage", href: "/usage", icon: "activity" },
 ];
 
 const iconPaths: Record<string, string> = {
@@ -19,6 +20,7 @@ const iconPaths: Record<string, string> = {
   sliders: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
   download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
   "check-circle": "M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3",
+  activity: "M22 12h-4l-3 9L9 3l-3 9H2",
 };
 
 function NavIcon({ name }: { name: string }) {
