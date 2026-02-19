@@ -9,6 +9,14 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/hn-live",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/indie-hackers-live",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/ingest?job=ph_today",
       "schedule": "0 16 * * *"
     },
