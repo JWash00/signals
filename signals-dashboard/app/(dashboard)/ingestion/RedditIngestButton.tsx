@@ -7,15 +7,19 @@ import { runRedditIngestion } from "./actions";
 
 interface SubredditResult {
   subreddit: string;
+  fetched: number;
   inserted: number;
-  skipped: number;
+  duplicates: number;
+  invalid: number;
+  cursorBefore: string | null;
+  cursorAfter: string | null;
 }
 
 export function RedditIngestButton() {
   const [results, setResults] = useState<SubredditResult[] | null>(null);
   const [totals, setTotals] = useState<{
     inserted: number;
-    skipped: number;
+    duplicates: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -31,7 +35,7 @@ export function RedditIngestButton() {
         setError(res.error);
       } else {
         setResults(res.results);
-        setTotals({ inserted: res.inserted, skipped: res.skipped });
+        setTotals({ inserted: res.inserted, duplicates: res.duplicates });
         router.refresh();
       }
     });
@@ -44,18 +48,62 @@ export function RedditIngestButton() {
       </Button>
 
       {results && totals && (
-        <div className="space-y-1 text-sm text-gray-700">
-          {results.map((r) => (
-            <p key={r.subreddit}>
-              r/{r.subreddit} — Inserted:{" "}
-              <span className="font-semibold">{r.inserted}</span>, Skipped:{" "}
-              <span className="font-semibold">{r.skipped}</span>
-            </p>
-          ))}
-          <p className="pt-1 font-medium">
+        <div className="space-y-3">
+          {results.map((r) => {
+            const cursorChanged = r.cursorBefore !== r.cursorAfter;
+            return (
+              <div
+                key={r.subreddit}
+                className="rounded border border-gray-100 bg-gray-50 p-3 space-y-1"
+              >
+                <p className="text-sm font-medium text-gray-800">
+                  r/{r.subreddit}
+                </p>
+                <p className="text-sm text-gray-700">
+                  Fetched: <span className="font-semibold">{r.fetched}</span>
+                  {" · "}Inserted:{" "}
+                  <span className="font-semibold">{r.inserted}</span>
+                  {" · "}Duplicates:{" "}
+                  <span className="font-semibold">{r.duplicates}</span>
+                  {r.invalid > 0 && (
+                    <>
+                      {" · "}
+                      <span className="text-red-600">
+                        Invalid:{" "}
+                        <span className="font-semibold">{r.invalid}</span>
+                      </span>
+                    </>
+                  )}
+                </p>
+                <div className="text-xs font-mono text-gray-400 space-y-0.5">
+                  <p>
+                    Cursor before:{" "}
+                    <span className="text-gray-600">
+                      {r.cursorBefore ?? "(none)"}
+                    </span>
+                  </p>
+                  <p>
+                    Cursor after:{" "}
+                    <span
+                      className={
+                        cursorChanged ? "text-green-600" : "text-amber-600"
+                      }
+                    >
+                      {r.cursorAfter ?? "(none)"}
+                    </span>
+                    {!cursorChanged && r.cursorBefore !== null && (
+                      <span className="ml-1 text-amber-600">(unchanged)</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-sm font-medium text-gray-800 pt-1">
             Total — Inserted:{" "}
-            <span className="font-semibold">{totals.inserted}</span>, Skipped:{" "}
-            <span className="font-semibold">{totals.skipped}</span>
+            <span className="font-semibold">{totals.inserted}</span>,
+            Duplicates:{" "}
+            <span className="font-semibold">{totals.duplicates}</span>
           </p>
         </div>
       )}
