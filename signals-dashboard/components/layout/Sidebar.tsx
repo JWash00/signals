@@ -11,6 +11,7 @@ const baseNavItems = [
   { label: "Models", href: "/models", icon: "sliders" },
   { label: "Review", href: "/review", icon: "check-circle" },
   { label: "Usage", href: "/usage", icon: "activity" },
+  { label: "Health", href: "/health", icon: "heart-pulse" },
 ];
 
 const debugNavItems = [
@@ -29,6 +30,8 @@ const iconPaths: Record<string, string> = {
   download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
   "check-circle": "M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3",
   activity: "M22 12h-4l-3 9L9 3l-3 9H2",
+  "heart-pulse":
+    "M19.5 12.572l-7.5 7.428-7.5-7.428A5 5 0 0112 6.006a5 5 0 017.5 6.566zM5 12h2l2 4 4-8 2 4h2",
 };
 
 function NavIcon({ name }: { name: string }) {
