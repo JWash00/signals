@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getIngestionState,
   upsertIngestionState,
-} from "@/lib/ingestionState";
+} from "@/lib/ingestion/ingestionState";
 
 const SUBREDDITS = ["SaaS", "Entrepreneur"];
 
@@ -62,11 +62,12 @@ export async function ingestRedditForUser(
 
   for (const subreddit of SUBREDDITS) {
     // Read state for this subreddit
-    const state = await getIngestionState({
-      source: `reddit:${subreddit}`,
-      mode: "live",
-      owner_id: ownerId,
-    });
+    const state = await getIngestionState(
+      supabase,
+      ownerId,
+      `reddit:${subreddit}`,
+      "live",
+    );
 
     const cursorBefore = state?.cursor ?? null;
 
@@ -166,20 +167,16 @@ export async function ingestRedditForUser(
     }
 
     // Save state for this subreddit
-    await upsertIngestionState({
-      source: `reddit:${subreddit}`,
-      mode: "live",
-      owner_id: ownerId,
-      cursor: redditAfter,
-      meta: {
-        subreddit,
-        fetched: subFetched,
-        inserted: subInserted,
-        duplicates: subDuplicates,
-        invalid: subInvalid,
-        after: redditAfter,
+    await upsertIngestionState(
+      supabase,
+      ownerId,
+      `reddit:${subreddit}`,
+      "live",
+      {
+        cursor: redditAfter,
+        last_success_at: new Date().toISOString(),
       },
-    });
+    );
 
     results.push({
       subreddit,
