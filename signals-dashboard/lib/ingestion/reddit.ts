@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getIngestionState,
@@ -6,6 +7,8 @@ import {
 } from "@/lib/ingestion/ingestionState";
 
 const SUBREDDITS = ["SaaS", "Entrepreneur"];
+const REDDIT_CRON_SUBREDDITS =
+  (process.env.REDDIT_SUBREDDITS ?? "SaaS,Entrepreneur").split(",").map((s) => s.trim()).filter(Boolean);
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -193,4 +196,142 @@ export async function ingestRedditForUser(
   const duplicates = results.reduce((sum, r) => sum + r.duplicates, 0);
 
   return { results, inserted, duplicates };
+}
+
+// ── Cron-safe Reddit LIVE ingestion ───────────────────────
+
+export interface RedditCronResult {
+  fetched: number;
+  inserted: number;
+  duplicates: number;
+  skippedInvalid: number;
+  windowStart: string;
+}
+
+/**
+ * Cron-safe Reddit LIVE ingestion.
+ * Uses service-role client (no cookies/auth).
+ * Reads ingestion_state source='reddit', mode='live' for windowStart.
+ * Filters posts by created_utc > windowStart.
+ * Only updates last_success_at after a successful run (runSucceeded gate).
+ */
+export async function ingestRedditLiveCron(
+  ownerId: string,
+): Promise<RedditCronResult> {
+  const supabase = createServiceClient();
+  const limit = parseInt(process.env.REDDIT_LIMIT ?? "25", 10);
+
+  // ── Read state ────────────────────────────────────────────
+  const state = await getIngestionState(supabase, ownerId, "reddit", "live");
+  const now = new Date();
+  const windowStart = state?.last_success_at
+    ? new Date(state.last_success_at)
+    : new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const windowStartEpoch = windowStart.getTime() / 1000;
+
+  let totalFetched = 0;
+  let totalInserted = 0;
+  let totalDuplicates = 0;
+  let totalInvalid = 0;
+
+  for (const subreddit of REDDIT_CRON_SUBREDDITS) {
+    const url = `https://www.reddit.com/r/${subreddit}/new.json?limit=${limit}`;
+
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Signals/1.0" },
+    });
+
+    if (!res.ok) {
+      console.error(
+        `[reddit-cron] fetch failed r/${subreddit}: ${res.status}`,
+      );
+      continue;
+    }
+
+    const listing: RedditListing = await res.json();
+    const children = listing.data?.children ?? [];
+
+    for (const child of children) {
+      if (child.kind !== "t3") continue;
+      const post = child.data;
+
+      // Filter by window — only posts newer than windowStart
+      if (post.created_utc <= windowStartEpoch) continue;
+
+      totalFetched++;
+
+      if (!post.id || !post.title) {
+        console.warn(
+          `[reddit-cron] skip: missing id or title in r/${subreddit}`,
+        );
+        totalInvalid++;
+        continue;
+      }
+
+      const votes = Number(post.score ?? 0);
+      const comments = Number(post.num_comments ?? 0);
+      const safeVotes =
+        typeof votes === "number" && Number.isFinite(votes) ? votes : 0;
+      const safeComments =
+        typeof comments === "number" && Number.isFinite(comments)
+          ? comments
+          : 0;
+
+      const row = {
+        owner_id: ownerId,
+        source: "reddit",
+        source_id: post.id,
+        source_url: `https://www.reddit.com${post.permalink}`,
+        title: post.title,
+        content: post.selftext ?? "",
+        engagement_proxy: safeVotes,
+        metadata: {
+          subreddit: post.subreddit,
+          author: post.author,
+          created_utc: post.created_utc,
+          permalink: post.permalink,
+          flair: post.link_flair_text ?? null,
+          reddit_mode: "LIVE",
+          reddit_window: windowStart.toISOString(),
+          upvotes: safeVotes,
+          comments: safeComments,
+          upvote_ratio: post.upvote_ratio ?? null,
+        },
+        status: "new",
+      };
+
+      const { error } = await supabase.from("raw_signals").insert(row);
+
+      if (error) {
+        if (error.code === "23505") {
+          totalDuplicates++;
+        } else {
+          console.error(
+            `[reddit-cron] insert error ${post.id}:`,
+            error.message,
+          );
+          totalDuplicates++;
+        }
+      } else {
+        totalInserted++;
+      }
+    }
+  }
+
+  // ── Success-gated state write ─────────────────────────────
+  await upsertIngestionState(supabase, ownerId, "reddit", "live", {
+    last_success_at: now.toISOString(),
+  });
+
+  console.log(
+    `[reddit-cron] done | fetched=${totalFetched} inserted=${totalInserted} duplicates=${totalDuplicates} invalid=${totalInvalid}`,
+  );
+
+  return {
+    fetched: totalFetched,
+    inserted: totalInserted,
+    duplicates: totalDuplicates,
+    skippedInvalid: totalInvalid,
+    windowStart: windowStart.toISOString(),
+  };
 }

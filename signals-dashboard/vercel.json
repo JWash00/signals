@@ -5,8 +5,8 @@
       "schedule": "*/30 * * * *"
     },
     {
-      "path": "/api/cron/ingest?job=reddit_live",
-      "schedule": "0 */2 * * *"
+      "path": "/api/cron/reddit-live",
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/ingest?job=ph_today",
