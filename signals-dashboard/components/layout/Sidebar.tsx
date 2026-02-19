@@ -2,16 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { debugToolsEnabled } from "@/lib/debug";
 
-const navItems = [
+const baseNavItems = [
   { label: "Dashboard", href: "/dashboard", icon: "grid" },
   { label: "Clusters", href: "/clusters", icon: "layers" },
   { label: "Opportunities", href: "/opportunities", icon: "target" },
   { label: "Models", href: "/models", icon: "sliders" },
-  { label: "Ingestion", href: "/ingestion", icon: "download" },
   { label: "Review", href: "/review", icon: "check-circle" },
   { label: "Usage", href: "/usage", icon: "activity" },
 ];
+
+const debugNavItems = [
+  { label: "Ingestion", href: "/ingestion", icon: "download" },
+];
+
+const navItems = debugToolsEnabled()
+  ? [...baseNavItems.slice(0, 4), ...debugNavItems, ...baseNavItems.slice(4)]
+  : baseNavItems;
 
 const iconPaths: Record<string, string> = {
   grid: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",

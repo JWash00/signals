@@ -1,15 +1,29 @@
+import { redirect } from "next/navigation";
+import { debugToolsEnabled } from "@/lib/debug";
 import { Card } from "@/components/ui/Card";
 import { RedditIngestButton } from "./RedditIngestButton";
 import { ProductHuntIngestButton } from "./ProductHuntIngestButton";
 
 export default function IngestionPage() {
+  if (!debugToolsEnabled()) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-bold text-gray-900">Ingestion</h1>
+      <h1 className="text-2xl font-bold text-gray-900">
+        Ingestion{" "}
+        <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+          DEBUG
+        </span>
+      </h1>
 
       <p className="text-sm text-gray-500 -mt-4">
-        Auto-ingestion is enabled in production via cron. Buttons below are
-        manual override.
+        Auto-ingestion runs via cron every 30 minutes. These manual controls are
+        only visible when{" "}
+        <code className="rounded bg-gray-100 px-1">
+          NEXT_PUBLIC_DEBUG_TOOLS=1
+        </code>.
       </p>
 
       <Card title="Reddit: SaaS + Entrepreneur">
