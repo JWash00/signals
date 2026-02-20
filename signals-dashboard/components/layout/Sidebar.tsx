@@ -12,6 +12,7 @@ const baseNavItems = [
   { label: "Decide", href: "/review", icon: "check-circle" },
   { label: "Usage", href: "/usage", icon: "activity" },
   { label: "Health", href: "/health", icon: "heart-pulse" },
+  { label: "Subreddit Report", href: "/reports/subreddits", icon: "bar-chart" },
 ];
 
 const debugNavItems = [
@@ -32,6 +33,7 @@ const iconPaths: Record<string, string> = {
   activity: "M22 12h-4l-3 9L9 3l-3 9H2",
   "heart-pulse":
     "M19.5 12.572l-7.5 7.428-7.5-7.428A5 5 0 0112 6.006a5 5 0 017.5 6.566zM5 12h2l2 4 4-8 2 4h2",
+  "bar-chart": "M12 20V10M18 20V4M6 20v-4",
 };
 
 function NavIcon({ name }: { name: string }) {

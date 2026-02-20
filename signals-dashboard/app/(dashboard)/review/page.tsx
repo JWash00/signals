@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ReviewDecisionButtons from "./ReviewDecisionButtons";
+import { subredditFromRedditUrl } from "@/lib/sources/redditSubredditFromUrl";
 
 const STATUSES = ["new", "approved", "rejected"] as const;
 type Status = (typeof STATUSES)[number];
@@ -60,7 +61,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
       .eq("status", "rejected"),
     supabase
       .from("raw_signals")
-      .select("id, owner_id, source, title, content, engagement_proxy, metadata, status, created_at")
+      .select("id, owner_id, source, source_url, title, content, engagement_proxy, metadata, status, created_at")
       .eq("owner_id", user.id)
       .eq("status", selectedStatus)
       .order("created_at", { ascending: false }),
@@ -182,6 +183,12 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
                 <ReviewDecisionButtons id={s.id} currentStatus={selectedStatus} />
               </div>
 
+              {/* Pass check + Subreddit labels */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                <PassLabel metadata={s.metadata} />
+                <SubredditLabel source={s.source} sourceUrl={s.source_url} metadata={s.metadata} />
+              </div>
+
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.75, marginBottom: 6 }}>
@@ -226,5 +233,80 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Helper components ────────────────────────────────────────
+
+function PassLabel({ metadata }: { metadata: Record<string, unknown> | null }) {
+  const meta = metadata ?? {};
+
+  let text: string;
+  let bg: string;
+  let color: string;
+
+  if (meta.pass === true) {
+    text = `Why this passed: ${meta.pass_why ?? "Matched a signal rule"}`;
+    bg = "#ecfdf5";
+    color = "#065f46";
+  } else if (meta.pass === false) {
+    text = "Not ready (no pass rule hit)";
+    bg = "#fef2f2";
+    color = "#991b1b";
+  } else {
+    text = "Not checked yet";
+    bg = "#f5f5f5";
+    color = "#737373";
+  }
+
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        padding: "2px 8px",
+        borderRadius: 6,
+        background: bg,
+        color: color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+function SubredditLabel({
+  source,
+  sourceUrl,
+  metadata,
+}: {
+  source: string;
+  sourceUrl: string | null;
+  metadata: Record<string, unknown> | null;
+}) {
+  if (source !== "reddit") return null;
+
+  const sub =
+    (metadata?.subreddit as string) ??
+    subredditFromRedditUrl(sourceUrl) ??
+    null;
+
+  if (!sub) return null;
+
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        padding: "2px 8px",
+        borderRadius: 6,
+        background: "#eff6ff",
+        color: "#1e40af",
+        whiteSpace: "nowrap",
+      }}
+    >
+      r/{sub}
+    </span>
   );
 }

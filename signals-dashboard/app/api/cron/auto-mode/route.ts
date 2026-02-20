@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { problemSignature } from "@/lib/auto/problemSignature";
+import { evaluatePassRules } from "@/lib/filters/passRules";
+import { subredditFromRedditUrl } from "@/lib/sources/redditSubredditFromUrl";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -113,10 +115,15 @@ export async function GET(req: Request) {
     // STEP 1 & 2: Put Same Problems Together (Pain Groups)
     // ════════════════════════════════════════════════════════════
 
-    // 1a. Fetch approved signals not yet linked to a cluster
+    // ════════════════════════════════════════════════════════════
+    // STEP 0: Pass Check — only signals with a real signal marker
+    //         get to move forward into Pain Groups.
+    // ════════════════════════════════════════════════════════════
+
+    // 0a. Fetch approved signals not yet linked to a cluster
     const { data: unlinkedSignals, error: sigErr } = await supabase
       .from("raw_signals")
-      .select("id, title, content")
+      .select("id, title, content, source, source_url, metadata")
       .eq("owner_id", ownerId)
       .eq("status", "approved")
       .is("cluster_id", null)
@@ -124,9 +131,61 @@ export async function GET(req: Request) {
 
     if (sigErr) throw new Error(`Fetch unlinked signals: ${sigErr.message}`);
 
-    const signals = unlinkedSignals ?? [];
+    const allUnlinked = unlinkedSignals ?? [];
 
-    // 1b. Fetch all existing clusters for this owner (for signature matching)
+    // 0b. Evaluate pass rules on each signal
+    let passChecked = 0;
+    let passPassed = 0;
+    let passBlocked = 0;
+
+    const signals: typeof allUnlinked = [];
+
+    for (const s of allUnlinked) {
+      const result = evaluatePassRules({ title: s.title, content: s.content });
+      const meta = (s.metadata ?? {}) as Record<string, unknown>;
+
+      // Compute subreddit for reddit sources
+      let subreddit: string | null = (meta.subreddit as string) ?? null;
+      if (!subreddit && s.source === "reddit") {
+        subreddit = subredditFromRedditUrl(s.source_url);
+      }
+
+      // Check if metadata needs updating
+      const needsUpdate =
+        meta.pass !== result.passed ||
+        meta.pass_why !== result.why ||
+        (subreddit && meta.subreddit !== subreddit);
+
+      if (needsUpdate) {
+        const updatedMeta = {
+          ...meta,
+          pass: result.passed,
+          pass_rule_ids: result.matchedRuleIds,
+          pass_rule_titles: result.matchedTitles,
+          pass_why: result.why,
+          ...(subreddit ? { subreddit } : {}),
+        };
+
+        await supabase
+          .from("raw_signals")
+          .update({ metadata: updatedMeta })
+          .eq("id", s.id);
+      }
+
+      passChecked++;
+      if (result.passed) {
+        passPassed++;
+        signals.push(s);
+      } else {
+        passBlocked++;
+      }
+    }
+
+    console.log(
+      `AUTO MODE: pass check | checked=${passChecked} passed=${passPassed} blocked=${passBlocked}`,
+    );
+
+    // 1a. Fetch all existing clusters for this owner (for signature matching)
     const { data: existingClusters, error: clErr } = await supabase
       .from("pain_clusters")
       .select("id, title, description")
@@ -395,6 +454,9 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ok: true,
       ts,
+      step0_checked: passChecked,
+      step0_passed: passPassed,
+      step0_blocked: passBlocked,
       step1_signals_seen: signals.length,
       step2_groups_created: groupsCreated,
       step2_links_created: linksCreated,

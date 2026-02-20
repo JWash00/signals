@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { PASS_RULES } from "@/lib/filters/passRules";
 
 // ── Types matching the v2 RPC response ───────────────────────
 
@@ -25,6 +26,11 @@ interface Flag {
   level: "bad" | "ok";
   code: string;
   message: string;
+}
+
+interface MissingEnvItem {
+  label: string;
+  requiredFor: string;
 }
 
 interface HealthReport {
@@ -76,6 +82,7 @@ function timeAgo(iso: string | null): string {
 
 export default function HealthPage() {
   const [report, setReport] = useState<HealthReport | null>(null);
+  const [missingEnv, setMissingEnv] = useState<MissingEnvItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +96,7 @@ export default function HealthPage() {
         setError(json.error ?? "Failed to load report");
       } else {
         setReport(json.report);
+        setMissingEnv(json.missing_env ?? []);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
@@ -159,21 +167,33 @@ export default function HealthPage() {
         </div>
       </div>
 
-      {/* ── 5) Problems ──────────────────────────────────────── */}
-      {report.flags.length > 0 ? (
-        <Section
-          title="Any problems?"
-          description="Things the system noticed."
+      {/* ── Top banner ───────────────────────────────────────── */}
+      {missingEnv.length > 0 ? (
+        <div
+          style={{
+            padding: "var(--space-4)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--color-error-border)",
+            background: "var(--color-error-bg)",
+            fontSize: "var(--text-sm)",
+            color: "var(--color-text-primary)",
+          }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            {badFlags.map((flag) => (
-              <FlagRow key={flag.code} level="bad" message={flag.message} />
-            ))}
-            {okFlags.map((flag) => (
-              <FlagRow key={flag.code} level="ok" message={flag.message} />
-            ))}
-          </div>
-        </Section>
+          Setup is missing things. Some robots cannot run.
+        </div>
+      ) : report.flags.length > 0 ? (
+        <div
+          style={{
+            padding: "var(--space-4)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--color-warning-border)",
+            background: "var(--color-warning-bg)",
+            fontSize: "var(--text-sm)",
+            color: "var(--color-text-primary)",
+          }}
+        >
+          The system noticed some things worth checking.
+        </div>
       ) : (
         <div
           style={{
@@ -187,6 +207,67 @@ export default function HealthPage() {
         >
           All clear — no problems detected.
         </div>
+      )}
+
+      {/* ── 0) Is setup complete? ──────────────────────────────── */}
+      <Section
+        title="Is setup complete?"
+        description="If something is missing here, a robot cannot run."
+      >
+        {missingEnv.length === 0 ? (
+          <p style={{ ...emptyStyle, color: "var(--color-success)" }}>
+            Setup looks complete.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            {missingEnv.map((item) => (
+              <div
+                key={item.label}
+                style={{
+                  padding: "var(--space-2) var(--space-3)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--color-error-border)",
+                  background: "var(--color-error-bg)",
+                  fontSize: "var(--text-sm)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                <strong>Missing:</strong> {item.label} — Needed for: {item.requiredFor}
+              </div>
+            ))}
+            {missingEnv.some((e) => e.requiredFor === "Indie Hackers") && (
+              <div
+                style={{
+                  padding: "var(--space-2) var(--space-3)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--color-warning-border)",
+                  background: "var(--color-warning-bg)",
+                  fontSize: "var(--text-sm)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                Indie Hackers is OFF (missing Apify settings).
+              </div>
+            )}
+          </div>
+        )}
+      </Section>
+
+      {/* ── 5) Problems ──────────────────────────────────────── */}
+      {report.flags.length > 0 && (
+        <Section
+          title="Any problems?"
+          description="Things the system noticed."
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            {badFlags.map((flag) => (
+              <FlagRow key={flag.code} level="bad" message={flag.message} />
+            ))}
+            {okFlags.map((flag) => (
+              <FlagRow key={flag.code} level="ok" message={flag.message} />
+            ))}
+          </div>
+        </Section>
       )}
 
       {/* ── 1) Are the robots running? ───────────────────────── */}
@@ -353,6 +434,41 @@ export default function HealthPage() {
             <strong style={{ color: "var(--color-text-tertiary)" }}>{decide.rejected}</strong>
           </div>
         )}
+      </Section>
+
+      {/* ── 6) What counts as a real signal? ──────────────────── */}
+      <Section
+        title="What counts as a real signal?"
+        description="These are the rules the system uses to decide if an approved New Find is worth turning into a Big Idea."
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          {PASS_RULES.map((rule) => (
+            <div
+              key={rule.id}
+              style={{
+                padding: "var(--space-3) var(--space-4)",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-border-subtle)",
+                fontSize: "var(--text-sm)",
+              }}
+            >
+              <div style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "var(--space-1)" }}>
+                {rule.title}
+              </div>
+              <div style={{ color: "var(--color-text-secondary)", marginBottom: "var(--space-2)" }}>
+                {rule.description}
+              </div>
+              <div style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}>
+                Examples: {rule.examples.slice(0, 2).map((ex, i) => (
+                  <span key={i}>
+                    {i > 0 && " · "}
+                    &ldquo;{ex}&rdquo;
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </Section>
     </div>
   );
