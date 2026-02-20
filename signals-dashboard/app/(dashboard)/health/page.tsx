@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 
-// ── Types ─────────────────────────────────────────────────────
+// ── Types matching the v2 RPC response ───────────────────────
+
 interface IngestionRow {
   source: string;
   mode: string;
@@ -12,48 +13,53 @@ interface IngestionRow {
 
 interface SourceCount {
   source: string;
-  total: number;
-}
-
-interface SourceCount24h {
-  source: string;
-  rows_last_24h: number;
+  count: number;
 }
 
 interface RedditDup {
   source_id: string | null;
-  cnt: number;
-}
-
-interface StatusRow {
-  status: string;
-  cnt: number;
+  count: number;
 }
 
 interface Flag {
+  level: "bad" | "ok";
   code: string;
-  severity: "error" | "warn";
   message: string;
 }
 
 interface HealthReport {
   generated_at: string;
   owner_id: string;
-  ingestion_state: IngestionRow[];
-  raw_counts: SourceCount[];
-  raw_counts_last_24h: SourceCount24h[];
-  reddit_null_source_id_count: number;
-  reddit_duplicates: RedditDup[];
-  opportunities: {
+  robots_running: {
+    ingestion_state: IngestionRow[];
+  };
+  collected: {
+    new_finds_total_by_source: SourceCount[];
+    new_finds_last_24h_by_source: SourceCount[];
+  };
+  honesty_checks: {
+    reddit_missing_id_count: number;
+    reddit_duplicates: RedditDup[];
+  };
+  decide_counts: {
+    new: number;
+    approved: number;
+    rejected: number;
+  };
+  pain_groups: {
     total: number;
-    with_score: number;
-    with_verdict: number;
-    by_status: StatusRow[];
+  };
+  big_ideas: {
+    total: number;
+    scored: number;
+    decided: number;
+    avg_score: number | null;
   };
   flags: Flag[];
 }
 
-// ── Helpers ───────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────
+
 function timeAgo(iso: string | null): string {
   if (!iso) return "never";
   const diff = Date.now() - new Date(iso).getTime();
@@ -66,7 +72,8 @@ function timeAgo(iso: string | null): string {
   return `${days}d ago`;
 }
 
-// ── Page ──────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────
+
 export default function HealthPage() {
   const [report, setReport] = useState<HealthReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,7 +101,7 @@ export default function HealthPage() {
     fetchReport();
   }, [fetchReport]);
 
-  // ── Loading state ─────────────────────────────────────────
+  // ── Loading ─────────────────────────────────────────────
   if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -104,7 +111,7 @@ export default function HealthPage() {
     );
   }
 
-  // ── Error state ───────────────────────────────────────────
+  // ── Error ───────────────────────────────────────────────
   if (error || !report) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -117,8 +124,15 @@ export default function HealthPage() {
     );
   }
 
-  const hasErrors = report.flags.some((f) => f.severity === "error");
-  const hasWarnings = report.flags.some((f) => f.severity === "warn");
+  const badFlags = report.flags.filter((f) => f.level === "bad");
+  const okFlags = report.flags.filter((f) => f.level === "ok");
+  const ingestion = report.robots_running.ingestion_state;
+  const total24h = report.collected.new_finds_last_24h_by_source;
+  const totalAll = report.collected.new_finds_total_by_source;
+  const honesty = report.honesty_checks;
+  const decide = report.decide_counts;
+  const bigIdeas = report.big_ideas;
+  const painGroups = report.pain_groups;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
@@ -126,7 +140,7 @@ export default function HealthPage() {
       <div>
         <h1 style={h1Style}>System Health</h1>
         <p style={subtextStyle}>
-          This tells you if Signals is honest and working.
+          This tells you if Signals is being honest and working.
         </p>
         <div
           style={{
@@ -145,53 +159,22 @@ export default function HealthPage() {
         </div>
       </div>
 
-      {/* ── Flags (top if any) ──────────────────────────────── */}
-      {report.flags.length > 0 && (
+      {/* ── 5) Problems ──────────────────────────────────────── */}
+      {report.flags.length > 0 ? (
         <Section
-          title="Warnings / Problems"
-          description={
-            hasErrors
-              ? "Something needs your attention right now."
-              : "A few things to keep an eye on."
-          }
+          title="Any problems?"
+          description="Things the system noticed."
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            {report.flags.map((flag) => (
-              <div
-                key={flag.code}
-                style={{
-                  padding: "var(--space-3) var(--space-4)",
-                  borderRadius: "var(--radius-md)",
-                  border: `1px solid ${flag.severity === "error" ? "var(--color-error-border)" : "var(--color-warning-border)"}`,
-                  background:
-                    flag.severity === "error"
-                      ? "var(--color-error-bg)"
-                      : "var(--color-warning-bg)",
-                  fontSize: "var(--text-sm)",
-                  color: "var(--color-text-primary)",
-                }}
-              >
-                <strong>
-                  {flag.severity === "error" ? "ERROR" : "WARNING"}:
-                </strong>{" "}
-                {flag.message}
-                <span
-                  style={{
-                    display: "block",
-                    marginTop: "var(--space-1)",
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-tertiary)",
-                  }}
-                >
-                  Code: {flag.code}
-                </span>
-              </div>
+            {badFlags.map((flag) => (
+              <FlagRow key={flag.code} level="bad" message={flag.message} />
+            ))}
+            {okFlags.map((flag) => (
+              <FlagRow key={flag.code} level="ok" message={flag.message} />
             ))}
           </div>
         </Section>
-      )}
-
-      {report.flags.length === 0 && (
+      ) : (
         <div
           style={{
             padding: "var(--space-4)",
@@ -206,153 +189,131 @@ export default function HealthPage() {
         </div>
       )}
 
-      {/* ── 1. Are the robots running? ─────────────────────── */}
+      {/* ── 1) Are the robots running? ───────────────────────── */}
       <Section
         title="Are the robots running?"
-        description="This shows when each data source last ran successfully."
+        description="This shows when each data source last ran."
       >
-        {report.ingestion_state.length === 0 ? (
-          <p style={emptyStyle}>No data source state found.</p>
+        {ingestion.length === 0 ? (
+          <p style={emptyStyle}>No data sources set up yet.</p>
         ) : (
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Source</th>
-                <th style={thStyle}>Mode</th>
-                <th style={thStyle}>Last Success</th>
-                <th style={thStyle}>Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.ingestion_state.map((row, i) => (
-                <tr key={i}>
-                  <td style={tdStyle}>{row.source}</td>
-                  <td style={tdStyle}>{row.mode}</td>
-                  <td style={tdStyle}>{timeAgo(row.last_success_at)}</td>
-                  <td style={tdStyle}>{timeAgo(row.updated_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            {ingestion.map((row, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "var(--space-2) var(--space-3)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--color-border-subtle)",
+                  fontSize: "var(--text-sm)",
+                }}
+              >
+                <div>
+                  <strong style={{ color: "var(--color-text-primary)" }}>
+                    {row.source}
+                  </strong>
+                  <span style={{ color: "var(--color-text-tertiary)", marginLeft: "var(--space-2)" }}>
+                    ({row.mode})
+                  </span>
+                </div>
+                <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}>
+                  updated {timeAgo(row.updated_at)}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </Section>
 
-      {/* ── 2. Did we collect anything in the last 24h? ────── */}
+      {/* ── 2) Did we collect anything? ──────────────────────── */}
       <Section
         title="Did we collect anything in the last 24 hours?"
-        description="How many new signals came in from each source recently."
+        description="How many New Finds came in from each source."
       >
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
           <div>
-            <h4 style={subheadStyle}>Total (all time)</h4>
-            {report.raw_counts.length === 0 ? (
-              <p style={emptyStyle}>No signals yet.</p>
+            <h4 style={subheadStyle}>All time</h4>
+            {totalAll.length === 0 ? (
+              <p style={emptyStyle}>No New Finds yet.</p>
             ) : (
-              <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Source</th>
-                    <th style={{ ...thStyle, textAlign: "right" }}>Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.raw_counts.map((row) => (
-                    <tr key={row.source}>
-                      <td style={tdStyle}>{row.source}</td>
-                      <td style={{ ...tdStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                        {row.total.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                {totalAll.map((row) => (
+                  <CountRow key={row.source} label={row.source} count={row.count} />
+                ))}
+              </div>
             )}
           </div>
           <div>
             <h4 style={subheadStyle}>Last 24 hours</h4>
-            {report.raw_counts_last_24h.length === 0 ? (
-              <p style={emptyStyle}>Nothing in the last 24 hours.</p>
+            {total24h.length === 0 ? (
+              <p style={emptyStyle}>Nothing new today (that can be okay).</p>
             ) : (
-              <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Source</th>
-                    <th style={{ ...thStyle, textAlign: "right" }}>Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.raw_counts_last_24h.map((row) => (
-                    <tr key={row.source}>
-                      <td style={tdStyle}>{row.source}</td>
-                      <td style={{ ...tdStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                        {row.rows_last_24h.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                {total24h.map((row) => (
+                  <CountRow key={row.source} label={row.source} count={row.count} />
+                ))}
+              </div>
             )}
           </div>
         </div>
       </Section>
 
-      {/* ── 3. Are we duplicating things? ──────────────────── */}
+      {/* ── 3) Are we repeating ourselves? ───────────────────── */}
       <Section
-        title="Are we accidentally duplicating things?"
-        description="Checks Reddit signals for missing IDs or duplicated entries."
+        title="Are we repeating ourselves by accident?"
+        description="Checks if Reddit New Finds are missing IDs or showing up twice."
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           <div style={metricRowStyle}>
-            <span>Reddit rows missing source_id:</span>
+            <span>Reddit New Finds missing an ID:</span>
             <strong
               style={{
                 color:
-                  report.reddit_null_source_id_count > 0
+                  honesty.reddit_missing_id_count > 0
                     ? "var(--color-error)"
                     : "var(--color-success)",
               }}
             >
-              {report.reddit_null_source_id_count}
+              {honesty.reddit_missing_id_count}
             </strong>
           </div>
           <div style={metricRowStyle}>
-            <span>Duplicate source_id groups:</span>
+            <span>Reddit duplicates found:</span>
             <strong
               style={{
                 color:
-                  report.reddit_duplicates.length > 0
+                  honesty.reddit_duplicates.length > 0
                     ? "var(--color-error)"
                     : "var(--color-success)",
               }}
             >
-              {report.reddit_duplicates.length}
+              {honesty.reddit_duplicates.length}
             </strong>
           </div>
-          {report.reddit_duplicates.length > 0 && (
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>source_id</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.reddit_duplicates.slice(0, 10).map((dup, i) => (
-                  <tr key={i}>
-                    <td style={tdStyle}>{dup.source_id ?? "(null)"}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{dup.cnt}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {honesty.reddit_duplicates.length > 0 && (
+            <div
+              style={{
+                padding: "var(--space-3)",
+                borderRadius: "var(--radius-md)",
+                background: "var(--color-error-bg)",
+                border: "1px solid var(--color-error-border)",
+                fontSize: "var(--text-sm)",
+              }}
+            >
+              <strong>Heads up:</strong> Some Reddit New Finds appeared more than once.
+              This means the system may be counting the same thing twice.
+            </div>
           )}
         </div>
       </Section>
 
-      {/* ── 4. Is the system moving forward? ─────────────── */}
+      {/* ── 4) Is the system turning New Finds into Big Ideas? ── */}
       <Section
-        title="Is the system moving forward?"
-        description="Shows whether new finds are turning into scored Big Ideas."
+        title="Is the system making Big Ideas?"
+        description="Shows whether New Finds are turning into scored Big Ideas."
       >
         <div
           style={{
@@ -362,40 +323,42 @@ export default function HealthPage() {
             marginBottom: "var(--space-4)",
           }}
         >
-          <MetricBox label="Big Ideas" value={report.opportunities.total} />
-          <MetricBox label="With Score" value={report.opportunities.with_score} />
-          <MetricBox label="With Verdict" value={report.opportunities.with_verdict} />
+          <MetricBox label="Big Ideas" value={bigIdeas.total} />
+          <MetricBox label="Scored" value={bigIdeas.scored} />
+          <MetricBox label="Decided" value={bigIdeas.decided} />
         </div>
-        {report.opportunities.by_status.length > 0 && (
-          <>
-            <h4 style={subheadStyle}>By Status</h4>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
-              {report.opportunities.by_status.map((row) => (
-                <div
-                  key={row.status}
-                  style={{
-                    padding: "var(--space-2) var(--space-3)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-bg-elevated)",
-                    fontSize: "var(--text-sm)",
-                  }}
-                >
-                  <strong>{row.status}</strong>
-                  <span style={{ marginLeft: "var(--space-2)", fontVariantNumeric: "tabular-nums" }}>
-                    {row.cnt}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
+        {bigIdeas.avg_score != null && (
+          <div style={{ ...metricRowStyle, marginBottom: "var(--space-3)" }}>
+            <span>Average score:</span>
+            <strong style={{ color: "var(--color-text-primary)" }}>
+              {bigIdeas.avg_score.toFixed(1)}
+            </strong>
+          </div>
+        )}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "var(--space-4)",
+            marginBottom: "var(--space-4)",
+          }}
+        >
+          <MetricBox label="Pain Groups" value={painGroups.total} />
+          <MetricBox label="New Finds (new)" value={decide.new} />
+          <MetricBox label="Approved" value={decide.approved} />
+        </div>
+        {decide.rejected > 0 && (
+          <div style={metricRowStyle}>
+            <span>Rejected:</span>
+            <strong style={{ color: "var(--color-text-tertiary)" }}>{decide.rejected}</strong>
+          </div>
         )}
       </Section>
     </div>
   );
 }
 
-// ── Reusable pieces ───────────────────────────────────────────
+// ── Reusable pieces ──────────────────────────────────────────
 
 function Section({
   title,
@@ -476,7 +439,50 @@ function MetricBox({ label, value }: { label: string; value: number }) {
   );
 }
 
-// ── Shared styles ─────────────────────────────────────────────
+function FlagRow({ level, message }: { level: "bad" | "ok"; message: string }) {
+  const isBad = level === "bad";
+  return (
+    <div
+      style={{
+        padding: "var(--space-3) var(--space-4)",
+        borderRadius: "var(--radius-md)",
+        border: `1px solid ${isBad ? "var(--color-error-border)" : "var(--color-warning-border)"}`,
+        background: isBad ? "var(--color-error-bg)" : "var(--color-warning-bg)",
+        fontSize: "var(--text-sm)",
+        color: "var(--color-text-primary)",
+      }}
+    >
+      <strong>{isBad ? "BAD" : "OK"}:</strong> {message}
+    </div>
+  );
+}
+
+function CountRow({ label, count }: { label: string; count: number }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "var(--space-2) var(--space-3)",
+        fontSize: "var(--text-sm)",
+      }}
+    >
+      <span style={{ color: "var(--color-text-primary)" }}>{label}</span>
+      <span
+        style={{
+          fontWeight: 600,
+          fontVariantNumeric: "tabular-nums",
+          color: "var(--color-text-primary)",
+        }}
+      >
+        {count.toLocaleString()}
+      </span>
+    </div>
+  );
+}
+
+// ── Shared styles ────────────────────────────────────────────
 
 const h1Style: React.CSSProperties = {
   fontSize: "var(--text-2xl)",
@@ -509,29 +515,6 @@ const errorBoxStyle: React.CSSProperties = {
   color: "var(--color-error-text)",
   border: "1px solid var(--color-error-border)",
   fontSize: "var(--text-sm)",
-};
-
-const tableStyle: React.CSSProperties = {
-  width: "100%",
-  borderCollapse: "collapse",
-  fontSize: "var(--text-sm)",
-};
-
-const thStyle: React.CSSProperties = {
-  textAlign: "left",
-  padding: "var(--space-2) var(--space-3)",
-  fontWeight: 600,
-  color: "var(--color-text-tertiary)",
-  fontSize: "var(--text-xs)",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-  borderBottom: "1px solid var(--color-border)",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "var(--space-2) var(--space-3)",
-  color: "var(--color-text-primary)",
-  borderBottom: "1px solid var(--color-border-subtle)",
 };
 
 const emptyStyle: React.CSSProperties = {
