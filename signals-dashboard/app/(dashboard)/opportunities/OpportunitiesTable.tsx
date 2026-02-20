@@ -31,7 +31,7 @@ export function OpportunitiesTable({ data }: { data: PipelineRow[] }) {
   return (
     <Table<PipelineRow>
       searchable
-      searchPlaceholder="Search opportunities..."
+      searchPlaceholder="Search Big Ideas..."
       searchAccessor={(r) => `${r.title} ${r.status} ${r.verdict ?? ""}`}
       columns={[
         {
@@ -80,10 +80,10 @@ export function OpportunitiesTable({ data }: { data: PipelineRow[] }) {
         },
       ]}
       data={data}
-      emptyMessage="No opportunities yet"
+      emptyMessage="No Big Ideas yet"
       emptyAction={
         <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-sm)" }}>
-          Create one below to get started
+          Big Ideas are created automatically from Pain Groups.
         </span>
       }
     />

@@ -218,7 +218,7 @@ export default async function DashboardPage() {
             margin: 0,
           }}
         >
-          Pipeline Overview
+          Dashboard
         </h1>
         <p
           style={{
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
             marginTop: "var(--space-1)",
           }}
         >
-          Top opportunities ranked by PMF score
+          Top Big Ideas ranked by score
         </p>
       </div>
 
@@ -237,7 +237,7 @@ export default async function DashboardPage() {
         style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-4)" }}
       >
         <KPICard
-          label="Total Opportunities"
+          label="Total Big Ideas"
           value={totalCount}
           subtitle={`${scoredCount} scored · ${decidedCount} decided`}
         />
@@ -265,11 +265,11 @@ export default async function DashboardPage() {
 
       {/* ── Status + Verdict Distribution ─────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--space-4)" }}>
-        {/* Pipeline Status */}
-        <Card title="Pipeline Status">
+        {/* Status */}
+        <Card title="Status">
           {statusEntries.length === 0 ? (
             <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-tertiary)", margin: 0 }}>
-              No opportunities yet
+              No Big Ideas yet
             </p>
           ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
@@ -504,7 +504,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Opportunities Table ───────────────────────────── */}
-      <Card title="Top 25 Opportunities" padding={false}>
+      <Card title="Top 25 Big Ideas" padding={false}>
         <DashboardTable data={rows} />
       </Card>
     </div>

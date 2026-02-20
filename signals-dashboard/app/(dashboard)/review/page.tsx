@@ -76,16 +76,16 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
   };
 
   const tabLabels: Record<Status, string> = {
-    new: "New",
+    new: "New Finds",
     approved: "Approved",
     rejected: "Rejected",
   };
 
   return (
     <div style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Review Queue</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Decide</h1>
       <p style={{ opacity: 0.75, marginBottom: 16 }}>
-        Approve or reject raw signals. No editing. One click per decision.
+        Approve or reject new finds. One click per decision.
       </p>
 
       {/* Tabs */}

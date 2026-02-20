@@ -33,7 +33,7 @@ export function DashboardTable({ data }: { data: PipelineRow[] }) {
     <Table<PipelineRow>
       data={data}
       searchable
-      searchPlaceholder="Search opportunities..."
+      searchPlaceholder="Search Big Ideas..."
       searchAccessor={(r) =>
         `${r.title ?? ""} ${r.status ?? ""} ${r.verdict ?? ""}`
       }
@@ -101,17 +101,17 @@ export function DashboardTable({ data }: { data: PipelineRow[] }) {
             ),
         },
       ]}
-      emptyMessage="No scored opportunities yet"
+      emptyMessage="No scored Big Ideas yet"
       emptyAction={
         <Link
-          href="/opportunities"
+          href="/review"
           style={{
             color: "var(--color-accent)",
             fontSize: "var(--text-sm)",
             fontWeight: 500,
           }}
         >
-          Create an opportunity to get started
+          Approve new finds to get started
         </Link>
       }
     />

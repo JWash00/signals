@@ -2,8 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
-import CreateClusterButton from "./CreateClusterButton";
-import CreateOpportunityButton from "./CreateOpportunityButton";
 
 const TABS = ["approved", "clusters"] as const;
 type Tab = (typeof TABS)[number];
@@ -75,8 +73,8 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
   };
 
   const tabLabels: Record<Tab, string> = {
-    approved: "Approved Signals",
-    clusters: "Clusters",
+    approved: "Approved New Finds",
+    clusters: "Pain Groups",
   };
 
   const items = listResult.data ?? [];
@@ -92,7 +90,7 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
             margin: 0,
           }}
         >
-          Clusters
+          Pain Groups
         </h1>
         <p
           style={{
@@ -101,7 +99,7 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
             marginTop: "var(--space-1)",
           }}
         >
-          Create clusters from approved signals, then create opportunities from clusters.
+          Approved signals are automatically grouped into Pain Groups. Big Ideas are created when a group has enough evidence.
         </p>
       </div>
 
@@ -171,10 +169,12 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
               marginBottom: "var(--space-2)",
             }}
           >
-            {selectedTab === "approved" ? "No approved signals" : "No clusters yet"}
+            {selectedTab === "approved" ? "No approved signals" : "No Pain Groups yet"}
           </div>
           <div style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-sm)" }}>
-            Nothing here yet.
+            {selectedTab === "approved"
+              ? "Approve new finds in the Decide tab first."
+              : "Pain Groups are created automatically when enough similar signals are approved."}
           </div>
         </div>
       ) : selectedTab === "approved" ? (
@@ -233,8 +233,6 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
                     {truncate(String(s.content ?? ""), 320) || "(no content)"}
                   </div>
                 </div>
-
-                <CreateClusterButton signalId={s.id as string} />
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
@@ -339,7 +337,6 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
                 </div>
               </div>
 
-              <CreateOpportunityButton clusterId={c.id as string} />
             </div>
           ))}
         </div>

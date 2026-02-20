@@ -17,12 +17,24 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/indie-hackers-stories-live",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/indie-hackers-posts-live",
+      "schedule": "0 */3 * * *"
+    },
+    {
       "path": "/api/cron/ingest?job=ph_today",
       "schedule": "0 16 * * *"
     },
     {
       "path": "/api/cron/ingest?job=ph_backfill",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/auto-mode",
+      "schedule": "*/30 * * * *"
     }
   ]
 }

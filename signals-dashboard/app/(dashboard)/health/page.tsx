@@ -212,7 +212,7 @@ export default function HealthPage() {
         description="This shows when each data source last ran successfully."
       >
         {report.ingestion_state.length === 0 ? (
-          <p style={emptyStyle}>No ingestion state found.</p>
+          <p style={emptyStyle}>No data source state found.</p>
         ) : (
           <table style={tableStyle}>
             <thead>
@@ -349,10 +349,10 @@ export default function HealthPage() {
         </div>
       </Section>
 
-      {/* ── 4. Is the pipeline moving forward? ─────────────── */}
+      {/* ── 4. Is the system moving forward? ─────────────── */}
       <Section
-        title="Is the pipeline moving forward?"
-        description="Shows whether signals are turning into scored opportunities."
+        title="Is the system moving forward?"
+        description="Shows whether new finds are turning into scored Big Ideas."
       >
         <div
           style={{
@@ -362,7 +362,7 @@ export default function HealthPage() {
             marginBottom: "var(--space-4)",
           }}
         >
-          <MetricBox label="Opportunities" value={report.opportunities.total} />
+          <MetricBox label="Big Ideas" value={report.opportunities.total} />
           <MetricBox label="With Score" value={report.opportunities.with_score} />
           <MetricBox label="With Verdict" value={report.opportunities.with_verdict} />
         </div>

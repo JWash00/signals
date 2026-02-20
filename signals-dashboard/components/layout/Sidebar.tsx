@@ -6,16 +6,16 @@ import { debugToolsEnabled } from "@/lib/debug";
 
 const baseNavItems = [
   { label: "Dashboard", href: "/dashboard", icon: "grid" },
-  { label: "Clusters", href: "/clusters", icon: "layers" },
-  { label: "Opportunities", href: "/opportunities", icon: "target" },
+  { label: "Pain Groups", href: "/clusters", icon: "layers" },
+  { label: "Big Ideas", href: "/opportunities", icon: "target" },
   { label: "Models", href: "/models", icon: "sliders" },
-  { label: "Review", href: "/review", icon: "check-circle" },
+  { label: "Decide", href: "/review", icon: "check-circle" },
   { label: "Usage", href: "/usage", icon: "activity" },
   { label: "Health", href: "/health", icon: "heart-pulse" },
 ];
 
 const debugNavItems = [
-  { label: "Ingestion", href: "/ingestion", icon: "download" },
+  { label: "Get Stuff", href: "/ingestion", icon: "download" },
 ];
 
 const navItems = debugToolsEnabled()

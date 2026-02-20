@@ -12,14 +12,14 @@ export default function IngestionPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-bold text-gray-900">
-        Ingestion{" "}
+        Get Stuff{" "}
         <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
           DEBUG
         </span>
       </h1>
 
       <p className="text-sm text-gray-500 -mt-4">
-        Auto-ingestion runs via cron every 30 minutes. These manual controls are
+        Auto collection runs via cron every 30 minutes. These manual controls are
         only visible when{" "}
         <code className="rounded bg-gray-100 px-1">
           NEXT_PUBLIC_DEBUG_TOOLS=1
