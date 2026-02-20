@@ -5,6 +5,10 @@ import {
   getIngestionState,
   upsertIngestionState,
 } from "@/lib/ingestion/ingestionState";
+import {
+  getRedditSourceId,
+  getRedditCanonicalUrl,
+} from "@/lib/sources/reddit";
 
 const SUBREDDITS = ["SaaS", "Entrepreneur"];
 const REDDIT_CRON_SUBREDDITS =
@@ -113,10 +117,22 @@ export async function ingestRedditForUser(
 
       subFetched++;
 
-      // Hard guard: never insert a row with null source_id or missing title
-      if (!post.id || !post.title) {
+      // Derive stable source_id via helper — skip post if impossible
+      let sourceId: string;
+      try {
+        sourceId = getRedditSourceId(post);
+      } catch {
         console.warn(
-          `Reddit skip: post missing id or title in r/${subreddit}`,
+          `REDDIT SKIP: missing source_id in r/${subreddit}`,
+        );
+        subInvalid++;
+        continue;
+      }
+
+      // Hard guard: never insert a row with null/empty source_id or title
+      if (!sourceId || sourceId.trim() === "" || !post.title) {
+        console.warn(
+          `Reddit skip: post missing source_id or title in r/${subreddit}`,
         );
         subInvalid++;
         continue;
@@ -135,8 +151,8 @@ export async function ingestRedditForUser(
       const row = {
         owner_id: ownerId,
         source: "reddit",
-        source_id: post.id,
-        source_url: `https://www.reddit.com${post.permalink}`,
+        source_id: sourceId,
+        source_url: getRedditCanonicalUrl(post) ?? "",
         title: post.title,
         content: post.selftext ?? "",
         engagement_proxy: safeVotes,
@@ -260,9 +276,22 @@ export async function ingestRedditLiveCron(
 
       totalFetched++;
 
-      if (!post.id || !post.title) {
+      // Derive stable source_id via helper — skip post if impossible
+      let sourceId: string;
+      try {
+        sourceId = getRedditSourceId(post);
+      } catch {
         console.warn(
-          `[reddit-cron] skip: missing id or title in r/${subreddit}`,
+          `[reddit-cron] REDDIT SKIP: missing source_id in r/${subreddit}`,
+        );
+        totalInvalid++;
+        continue;
+      }
+
+      // Hard guard: never insert a row with null/empty source_id or title
+      if (!sourceId || sourceId.trim() === "" || !post.title) {
+        console.warn(
+          `[reddit-cron] skip: missing source_id or title in r/${subreddit}`,
         );
         totalInvalid++;
         continue;
@@ -280,8 +309,8 @@ export async function ingestRedditLiveCron(
       const row = {
         owner_id: ownerId,
         source: "reddit",
-        source_id: post.id,
-        source_url: `https://www.reddit.com${post.permalink}`,
+        source_id: sourceId,
+        source_url: getRedditCanonicalUrl(post) ?? "",
         title: post.title,
         content: post.selftext ?? "",
         engagement_proxy: safeVotes,

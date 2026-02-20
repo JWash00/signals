@@ -158,6 +158,7 @@ export default async function DashboardPage() {
   // ── KPI computations ────────────────────────────────────
   const totalCount = allOpportunities.length;
   const scoredCount = allOpportunities.filter((r) => r.score_total != null).length;
+  const decidedCount = allOpportunities.filter((r) => r.verdict != null).length;
   const buildCount = allOpportunities.filter((r) => r.verdict === "BUILD").length;
   const avgScore =
     scoredCount > 0
@@ -238,7 +239,7 @@ export default async function DashboardPage() {
         <KPICard
           label="Total Opportunities"
           value={totalCount}
-          subtitle={`${scoredCount} scored`}
+          subtitle={`${scoredCount} scored · ${decidedCount} decided`}
         />
         <KPICard
           label="Avg PMF Score"
@@ -249,7 +250,7 @@ export default async function DashboardPage() {
           label="BUILD Verdict"
           value={buildCount}
           accent
-          subtitle={scoredCount > 0 ? `${((buildCount / scoredCount) * 100).toFixed(0)}% of scored` : "No verdicts yet"}
+          subtitle={decidedCount > 0 ? `${((buildCount / decidedCount) * 100).toFixed(0)}% of ${decidedCount} decided` : "No verdicts yet"}
         />
       </div>
 
