@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ReviewDecisionButtons from "./ReviewDecisionButtons";
 import { subredditFromRedditUrl } from "@/lib/sources/redditSubredditFromUrl";
+import { labelForSource } from "@/lib/ui/sourceLabels";
 
 const STATUSES = ["new", "approved", "rejected"] as const;
 type Status = (typeof STATUSES)[number];
@@ -152,7 +153,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontWeight: 700 }}>{s.source}</span>
+                    <span style={{ fontWeight: 700 }}>{labelForSource(s.source)}</span>
                     {(s.source === "product_hunt" || s.source === "producthunt") && s.metadata?.ph_mode && (
                       <span
                         style={{

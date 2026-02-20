@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
+import { labelForSource } from "@/lib/ui/sourceLabels";
 
 const TABS = ["approved", "clusters"] as const;
 type Tab = (typeof TABS)[number];
@@ -205,7 +206,7 @@ export default async function ClustersPage({ searchParams }: ClustersPageProps) 
                       gap: "var(--space-2)",
                     }}
                   >
-                    <Badge variant="default">{String(s.source ?? "")}</Badge>
+                    <Badge variant="default">{labelForSource(s.source as string)}</Badge>
                     {s.created_at ? (
                       <span>{new Date(s.created_at as string).toLocaleDateString()}</span>
                     ) : null}

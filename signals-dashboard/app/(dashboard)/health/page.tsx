@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { PASS_RULES } from "@/lib/filters/passRules";
+import { labelForSource } from "@/lib/ui/sourceLabels";
 
 // ── Types matching the v2 RPC response ───────────────────────
 
@@ -294,7 +295,7 @@ export default function HealthPage() {
               >
                 <div>
                   <strong style={{ color: "var(--color-text-primary)" }}>
-                    {row.source}
+                    {labelForSource(row.source)}
                   </strong>
                   <span style={{ color: "var(--color-text-tertiary)", marginLeft: "var(--space-2)" }}>
                     ({row.mode})
@@ -322,7 +323,7 @@ export default function HealthPage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 {totalAll.map((row) => (
-                  <CountRow key={row.source} label={row.source} count={row.count} />
+                  <CountRow key={row.source} label={labelForSource(row.source)} count={row.count} />
                 ))}
               </div>
             )}
@@ -334,7 +335,7 @@ export default function HealthPage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 {total24h.map((row) => (
-                  <CountRow key={row.source} label={row.source} count={row.count} />
+                  <CountRow key={row.source} label={labelForSource(row.source)} count={row.count} />
                 ))}
               </div>
             )}
